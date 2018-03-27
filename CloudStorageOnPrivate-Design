@@ -1,0 +1,38 @@
+CloudStorageOnPrivate-Design
+
+需求分析：
+	基础功能：
+		1、公共可见空间 -- 允许下载 root用户登录上传
+		2、以用户区分
+			a、公开空间 -- 游客下载 登录上传
+			b、私有空间 -- 登录下载 登录上传
+
+		3、用户分享（某资源分享URL）:
+			a、游客访问 -- 可下载
+			b、登录访问 -- 可下载，可转存自身空间
+
+
+后端架构设计：
+
+	FileItem{
+		String ownerName;
+		String realPath;		//服务器中真实资源所在地
+		String virtualPath;
+
+		boolean isUserRootPath;
+		boolean isDictionary;
+		List<FileItem> children;		
+
+		boolean isSharedFile;
+	}
+
+	User{
+		String name;
+		String password;
+		int spaceSize;
+
+		List<FileItem> publicFiles;
+		List<FileItem> privateFiles;
+		List<FileItem> sharedFiles;
+	}
+
