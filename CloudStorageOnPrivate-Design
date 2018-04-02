@@ -12,27 +12,107 @@ CloudStorageOnPrivate-Design
 			b、登录访问 -- 可下载，可转存自身空间
 
 
-后端架构设计：
+实现细节：
+	1、登录：
 
+
+
+接口约定(JSON)：
+	1、登录 /login
+		参数: "username", "password"
+		返回: {
+			result: true/false,
+			message: "success"/"error message"
+			token: "..."/null
+		}
+
+	2、注册 /register
+		参数: "username", "password"
+		返回: {
+			result: true/false,
+			message: "success"/"error message"
+			token: "..."/null
+		}
+
+		查询用户名是否占用 /isUsed
+			参数: "username"
+			返回: {isUsed: true/false}
+
+	3、获取我的文件路径树 /myindex
+		参数: "token"
+		返回: {
+			result: true/fasle,
+			message: "success"/"error message",
+			FileItem:{
+				.../null
+			}
+		}
+
+	4、获取他人文件路径树 /index
+		参数: "token", "username"(要访问的用户名)
+		返回: {
+			result: true/false
+			message: "success"/"error message"
+			FileItem: {
+				.../null
+			}
+		}
+	5、游客获取文件路径树 /publicindex
+		参数: "username"
+		返回: {
+			result: true/false,
+			message: "success"/"error message"
+			FileItem{
+				.../null
+			}
+		}
+	6、下载文件 /download
+	7、上传文件 /upload
+	8、生成分享链接 /getsharelink
+		参数: "username"（分享者） "FileItem:{ ... }"
+		返回: {
+			result: true/false,
+			message: "success"/"error message",
+			link: "Share URL"/null
+		}
+	9、访问分享链接 /share
+		参数: "link", "token"(可选)
+		返回: {
+			result: true/false,
+            message: "success"/"error message"
+            FileItem{
+            	.../null
+            }
+		}
+	10、游客访问 /
+		返回: {
+			FileItem: {
+				.../null
+			}
+		}
+	11、文件编辑 /edit
+		参数: "token", "behavior",  //"rename", "delete", "transfer", "move", "toPublic"/"toPrivate", "details"
+
+
+后端数据结构设计：
 	FileItem{
-		String ownerName;
-		String realPath;		//服务器中真实资源所在地
-		String virtualPath;
-
-		boolean isUserRootPath;
-		boolean isDictionary;
-		List<FileItem> children;		
-
-		boolean isSharedFile;
+		val ownerName: String,
+        val realPath: Path,
+        val virtualPath: URL,
+        val isUserRootPath: Boolean,
+        val isDictionary: Boolean,
+        var children: List<FileItem>,
+        val isPublic: Boolean,
+        val lastModified: Date,
+        val size: Int
 	}
 
 	User{
-		String name;
-		String password;
-		int spaceSize;
-
-		List<FileItem> publicFiles;
-		List<FileItem> privateFiles;
-		List<FileItem> sharedFiles;
+		val name: String,
+        val password: String,
+        val space: Int,
+        val publicFiles: List<FileItem>,
+        val privateFiles: List<FileItem>,
+        val sharedFiles: List<FileItem>
 	}
 

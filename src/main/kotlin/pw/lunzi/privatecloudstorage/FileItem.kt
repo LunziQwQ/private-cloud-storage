@@ -6,6 +6,7 @@ import java.io.FileOutputStream
 import java.net.URL
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.*
 
 /**
  * ***********************************************
@@ -21,7 +22,9 @@ data class FileItem(
         val isUserRootPath: Boolean,
         val isDictionary: Boolean,
         var children: List<FileItem>,
-        val isShared:Boolean
+        val isPublic: Boolean,
+        val lastModified: Date,
+        val size: Int
 ){
     companion object {
         val rootPath: Path = Paths.get("/var/cloudStorage/root")
