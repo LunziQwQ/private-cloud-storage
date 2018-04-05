@@ -1,5 +1,7 @@
 package pw.lunzi.privatecloudstorage
 
+import org.springframework.data.mongodb.repository.MongoRepository
+
 /**
  * ***********************************************
  * Created by Lunzi on 3/31/18.
@@ -16,3 +18,8 @@ data class User(
         val privateFiles: List<FileItem>,
         val sharedFiles: List<FileItem>
 )
+
+
+interface userRepository : MongoRepository<User, Long> {
+    fun findByUsername(username: String): User
+}

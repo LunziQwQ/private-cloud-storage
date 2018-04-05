@@ -5,7 +5,6 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.URL
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.*
 
 /**
@@ -25,11 +24,7 @@ data class FileItem(
         val isPublic: Boolean,
         val lastModified: Date,
         val size: Int
-){
-    companion object {
-        val rootPath: Path = Paths.get("/var/cloudStorage/root")
-    }
-}
+)
 
 fun FileItem.isExist() = realPath.toFile().exists()
 
