@@ -18,6 +18,7 @@ data class FileItem(
         val ownerName: String,
         val realPath: Path,
         val virtualPath: URL,
+        val virtualName: String,
         val isUserRootPath: Boolean,
         val isDictionary: Boolean,
         var children: List<FileItem>,
@@ -28,7 +29,7 @@ data class FileItem(
 
 fun FileItem.isExist() = realPath.toFile().exists()
 
-fun FileItem.save(fis: FileInputStream) {
+fun FileItem.saveFile(fis: FileInputStream) {
     val temp: File = realPath.toFile()
     if (isDictionary) {
         if (!isExist()) {

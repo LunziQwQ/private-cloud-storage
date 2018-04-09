@@ -1,6 +1,7 @@
 package pw.lunzi.privatecloudstorage
 
 import org.springframework.data.mongodb.repository.MongoRepository
+import org.springframework.stereotype.Repository
 
 /**
  * ***********************************************
@@ -13,13 +14,13 @@ import org.springframework.data.mongodb.repository.MongoRepository
 data class User(
         val name: String,
         val password: String,
-        val space: Int,
-        val publicFiles: List<FileItem>,
-        val privateFiles: List<FileItem>,
-        val sharedFiles: List<FileItem>
+        val space: Int? = 256000,
+        val publicFiles: List<FileItem> = ArrayList(),
+        val privateFiles: List<FileItem> = ArrayList(),
+        val sharedFiles: List<FileItem> = ArrayList()
 )
 
-
-interface userRepository : MongoRepository<User, Long> {
+@Repository
+interface UserRepository : MongoRepository<User, Long> {
     fun findByUsername(username: String): User
 }

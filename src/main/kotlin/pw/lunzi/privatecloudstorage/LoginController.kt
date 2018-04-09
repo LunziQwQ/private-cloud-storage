@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class LoginController {
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @RequestMapping("/")
+    @PreAuthorize("hasRole('MEMBER')")
+    @RequestMapping("/login")
     fun hello() = "hello world"
 
     @RequestMapping("/api/admin/e")
