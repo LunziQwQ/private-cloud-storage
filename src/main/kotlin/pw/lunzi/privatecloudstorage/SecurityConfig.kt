@@ -1,21 +1,22 @@
 package pw.lunzi.privatecloudstorage
 
 import org.springframework.context.annotation.Configuration
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
 
 @Configuration
-@EnableGlobalMethodSecurity(prePostEnabled = true)
-class SecurityConfig : WebSecurityConfigurerAdapter() {
+class SecurityConfig(private val userRepository: UserRepository) : WebSecurityConfigurerAdapter() {
 
     override fun configure(http: HttpSecurity) {
         http
+                .csrf().disable()
                 .authorizeRequests()
-                .antMatchers("/api/admin/**").hasRole("OKK")
-                .anyRequest().authenticated()
+//                .antMatchers("/api/admin/**").hasRole("OKK")
+                .anyRequest().permitAll()
                 .and()
                 .formLogin()
-                .and().userDetailsService(MyUserDetailsService())
+                .loginPage("/login.html").permitAll()
+                .defaultSuccessUrl("/")
+                .and().userDetailsService(MyUserDetailsService(userRepository))
     }
 }

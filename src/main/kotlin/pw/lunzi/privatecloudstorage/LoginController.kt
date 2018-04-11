@@ -1,7 +1,7 @@
 package pw.lunzi.privatecloudstorage
 
-import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 /**
@@ -12,12 +12,19 @@ import org.springframework.web.bind.annotation.RestController
  * ***********************************************
  */
 @RestController
-class LoginController {
+class LoginController(private val userRepository: UserRepository) {
 
-    @PreAuthorize("hasRole('MEMBER')")
-    @RequestMapping("/login")
-    fun hello() = "hello world"
+    data class RegisterMsg(val username: String, val password: String)
+    data class ReplyMsg(val result: Boolean, val message: String)
 
-    @RequestMapping("/api/admin/e")
-    fun helloe() = "hello world"
+
+    @PostMapping("register")
+    fun register(@RequestBody msg: RegisterMsg): ReplyMsg {
+        if (userRepository.countByUsername(msg.username) > 0) {
+            return ReplyMsg(false, "Username already used")
+        } else {
+            userRepository.save(User(msg.username, msg.password))
+            return ReplyMsg(true, "Register success")
+        }
+    }
 }

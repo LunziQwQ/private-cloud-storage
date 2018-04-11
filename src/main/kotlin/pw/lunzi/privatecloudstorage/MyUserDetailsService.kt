@@ -4,6 +4,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
+import org.springframework.security.core.userdetails.UsernameNotFoundException
 
 /**
  * ***********************************************
@@ -12,9 +13,16 @@ import org.springframework.security.core.userdetails.UserDetailsService
  * Not allowed to copy without permission.
  * ***********************************************
  */
-class MyUserDetailsService : UserDetailsService {
+class MyUserDetailsService(private val userRepository: UserRepository) : UserDetailsService {
     override fun loadUserByUsername(username: String): UserDetails {
-        return User(username, "{noop}1123", listOf("ROLE_ADMIN", "ROLE_SADMIN").map { SimpleGrantedAuthority(it) })
+        if (userRepository.countByUsername(username) > 0) {
+            val user = userRepository.findByUsername(username)!!
+            return User(username, ("{noop}" + user.password), (
+                    if (username == "root") listOf("ROLE_MEMBER", "ROLE_ADMIN")
+                    else listOf("ROLE_MEMBER")
+                    ).map { SimpleGrantedAuthority(it) })
+        } else {
+            throw UsernameNotFoundException("User not exist")
+        }
     }
-
 }

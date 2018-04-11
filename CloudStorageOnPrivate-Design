@@ -14,25 +14,23 @@ CloudStorageOnPrivate-Design
 
 实现细节：
 	1、登录：
-		权限组: ADMIN、MEMBER、GUEST
+		权限组: ADMIN、MEMBER、GUEST(default)
+
 
 
 
 接口约定(JSON)：
+	body: json: ...
 	1、登录 /login
+		跳转到框架提供的登录页面，登录成功获得session，登录失败跳转到/login?error
 		参数: "username", "password"
-		返回: {
-			result: true/false,
-			message: "success"/"error message"
-			token: "..."/null
-		}
+
 
 	2、注册 /register
 		参数: "username", "password"
 		返回: {
 			result: true/false,
 			message: "success"/"error message"
-			token: "..."/null
 		}
 
 		查询用户名是否占用 /isUsed

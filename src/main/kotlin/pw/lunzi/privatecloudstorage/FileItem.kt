@@ -1,10 +1,13 @@
 package pw.lunzi.privatecloudstorage
 
+import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.repository.MongoRepository
+import org.springframework.stereotype.Repository
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.net.URL
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.*
 
 /**
@@ -16,29 +19,44 @@ import java.util.*
  */
 data class FileItem(
         val ownerName: String,
-        val realPath: Path,
-        val virtualPath: URL,
+        val realPath: String,
+        val virtualPath: String,
         val virtualName: String,
         val isUserRootPath: Boolean,
         val isDictionary: Boolean,
-        var children: List<FileItem>,
+        var children: List<FileItem>?,
         val isPublic: Boolean,
         val lastModified: Date,
-        val size: Int
-)
-
-fun FileItem.isExist() = realPath.toFile().exists()
-
-fun FileItem.saveFile(fis: FileInputStream) {
-    val temp: File = realPath.toFile()
-    if (isDictionary) {
-        if (!isExist()) {
-            temp.mkdirs()
-        }
-    } else {
-        val fos = FileOutputStream(temp)
-        fos.write(fis.readAllBytes())
+        val size: Long = File(realPath).length(),
+        @Id val id: Int = (ownerName + ":" + virtualPath).hashCode()
+){
+    companion object {
+        val rootPath: Path = Paths.get("/var/www/cloudStorage/")
     }
+    fun isExist() = File(realPath).exists()
+
+    fun saveFile(fis: FileInputStream) {
+        val temp: File = File(realPath)
+        if (isDictionary) {
+            if (!isExist()) {
+                temp.mkdirs()
+            }
+        } else {
+            val fos = FileOutputStream(temp)
+//        fos.write(fis.readAllBytes())
+        }
+    }
+
+    fun getFOS(): FileOutputStream? = if (!isDictionary) FileOutputStream(File(realPath)) else null
 }
 
-fun FileItem.getFile(): FileOutputStream = if (!isDictionary) FileOutputStream(realPath.toFile()) else null!!
+@Repository
+interface FileItemRepository : MongoRepository<FileItem, Long> {
+    fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): FileItem?
+    fun findByVirtualPath(virtualPath: String): FileItem?
+    fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long
+}
+
+
+
+
