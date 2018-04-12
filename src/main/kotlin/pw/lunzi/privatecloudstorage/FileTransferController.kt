@@ -4,9 +4,13 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.core.io.InputStreamResource
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 import java.io.File
 import java.io.FileInputStream
 
@@ -38,7 +42,13 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
         }else return getErrResponseEntity("Sorry. File is invalid")
     }
 
-    fun getFileResponseEntity(fileItem: FileItem): ResponseEntity<InputStreamResource> {
+    @PreAuthorize("hasRole('ROLE_MEMBER')")
+    @PostMapping("upload")
+    fun uploadFile() {
+        TODO()
+    }
+
+    private fun getFileResponseEntity(fileItem: FileItem): ResponseEntity<InputStreamResource> {
         val file = File(fileItem.realPath)
         val resource = InputStreamResource(FileInputStream(file))
         return ResponseEntity.ok()
@@ -49,21 +59,10 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
                 .body(resource)
     }
 
-    fun getErrResponseEntity(msg:String):ResponseEntity<*>{
+    private fun getErrResponseEntity(msg:String):ResponseEntity<*>{
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/json"))
                 .body(jacksonObjectMapper().writeValueAsString(ReplyMsg(msg)))
-    }
-
-    @GetMapping("whoami")
-    fun test(@AuthenticationPrincipal user: UserDetails?): UserDetails? {
-        return user
-    }
-
-
-    @PostMapping("upload")
-    fun uploadFile() {
-
     }
 
 }

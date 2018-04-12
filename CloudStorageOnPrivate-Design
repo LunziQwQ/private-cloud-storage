@@ -48,7 +48,7 @@ CloudStorageOnPrivate-Design
 		}
 
 	4、获取他人文件路径树 /index
-		参数: "token", "username"(要访问的用户名)
+		参数: "username"(要访问的用户名)
 		返回: {
 			result: true/false
 			message: "success"/"error message"
@@ -56,19 +56,10 @@ CloudStorageOnPrivate-Design
 				.../null
 			}
 		}
-	5、游客获取文件路径树 /publicindex
-		参数: "username"
-		返回: {
-			result: true/false,
-			message: "success"/"error message"
-			FileItem{
-				.../null
-			}
-		}
 	6、下载文件 /download
 	7、上传文件 /upload
 	8、生成分享链接 /getsharelink
-		参数: "username"（分享者） "FileItem:{ ... }"
+		参数:  "FileItem:{ ... }"
 		返回: {
 			result: true/false,
 			message: "success"/"error message",
@@ -83,14 +74,9 @@ CloudStorageOnPrivate-Design
             	.../null
             }
 		}
-	10、游客访问 /
-		返回: {
-			FileItem: {
-				.../null
-			}
-		}
-	11、文件编辑 /edit
-		参数: "token", "behavior",  //"rename", "delete", "transfer", "move", "toPublic"/"toPrivate", "details"
+
+	11、文件编辑 /edit/ ...
+		参数: "behavior",  //"rename", "delete", "transfer", "move", "changeaccess"("toPublic"/"toPrivate")
 
 
 后端数据结构设计：
