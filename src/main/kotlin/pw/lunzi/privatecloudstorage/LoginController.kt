@@ -23,11 +23,11 @@ class LoginController(private val userRepository: UserRepository) {
 
     @PostMapping("register")
     fun register(@RequestBody msg: RegisterMsg): ReplyMsg {
-        if (userRepository.countByUsername(msg.username) > 0) {
-            return ReplyMsg(false, "Username already used")
+        return if (userRepository.countByUsername(msg.username) > 0) {
+            ReplyMsg(false, "Username already used")
         } else {
             userRepository.save(User(msg.username, msg.password))
-            return ReplyMsg(true, "Register success")
+            ReplyMsg(true, "Register success")
         }
     }
 

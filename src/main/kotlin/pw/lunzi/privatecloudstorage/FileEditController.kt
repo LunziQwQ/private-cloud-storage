@@ -23,7 +23,6 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
 
         val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
-        fileItemRepo.delete(fileItem)
         fileItem.virtualName = msg.newName
         fileItemRepo.save(fileItem)
         return ReplyMsg(true, "Rename success")
@@ -49,7 +48,6 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
 
         val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
-        fileItemRepo.delete(fileItem)
         fileItem.virtualPath = msg.newPath
         fileItemRepo.save(fileItem)
         return ReplyMsg(true, "Move success")
@@ -63,7 +61,6 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
 
         val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
-        fileItemRepo.delete(fileItem)
         fileItem.isPublic = msg.isPublic
         fileItemRepo.save(fileItem)
         return ReplyMsg(true, "Change access success")

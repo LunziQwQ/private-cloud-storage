@@ -23,12 +23,11 @@ data class FileItem(
         val isUserRootPath: Boolean,
         val isDictionary: Boolean,
         val size: Long = if (isDictionary) 0 else File(realPath).length(),
-        var virtualPath: String,
+        @Id var virtualPath: String,
         var virtualName: String,
         var children: List<FileItem>?,
         var isPublic: Boolean,
-        var lastModified: Date,
-        @Id val id: Int = (ownerName + ":" + virtualPath).hashCode()
+        var lastModified: Date
 ){
     companion object {
         val rootPath: Path = Paths.get("/var/www/cloudStorage/")
@@ -55,6 +54,8 @@ interface FileItemRepository : MongoRepository<FileItem, Long> {
     fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): FileItem?
     fun findByVirtualPath(virtualPath: String): FileItem?
     fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long
+    fun countByVirtualPath(virtualPath: String): Long
+
 }
 
 

@@ -20,8 +20,7 @@ data class User(
         val privateFiles: List<FileItem> = ArrayList(),
         val sharedFiles: List<FileItem> = ArrayList(),
         @Id val id: Int = username.hashCode()
-){
-}
+)
 
 @Repository
 interface UserRepository : MongoRepository<User, Long> {
