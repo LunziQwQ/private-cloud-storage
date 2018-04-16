@@ -20,84 +20,161 @@ CloudStorageOnPrivate-Design
 
 
 接口约定(JSON)：
-	body: json: ...
-	1、登录 /login
-		跳转到框架提供的登录页面，登录成功获得session，登录失败跳转到/login?error
-		参数: "username", "password"
+	除了文件上传以外，其他接口请求body均使用 raw(application/json)
 
 
-	2、注册 /register
-		参数: "username", "password"
-		返回: {
-			result: true/false,
-			message: "success"/"error message"
-		}
+	【已完成】
+		1、登录 /login
+			跳转到框架提供的登录页面，登录成功获得session，登录失败跳转到/login?error
 
-		查询用户名是否占用 /isUsed
-			参数: "username"
-			返回: {isUsed: true/false}
 
-	3、获取我的文件路径树 /myindex
-		参数: "token"
-		返回: {
-			result: true/fasle,
-			message: "success"/"error message",
-			FileItem:{
-				.../null
+		2、注册 /register
+			参数: {
+				"username": "....",
+				"password": "....
 			}
-		}
-
-	4、获取他人文件路径树 /index
-		参数: "username"(要访问的用户名)
-		返回: {
-			result: true/false
-			message: "success"/"error message"
-			FileItem: {
-				.../null
+			返回: {
+				result: true/false,
+				message: "...."
 			}
-		}
-	6、下载文件 /download
-	7、上传文件 /upload
-	8、生成分享链接 /getsharelink
-		参数:  "FileItem:{ ... }"
-		返回: {
-			result: true/false,
-			message: "success"/"error message",
-			link: "Share URL"/null
-		}
-	9、访问分享链接 /share
-		参数: "link", "token"(可选)
-		返回: {
-			result: true/false,
-            message: "success"/"error message"
-            FileItem{
-            	.../null
+
+			查询用户名是否占用 /isUsed
+				参数: {"username": "...."}
+				返回: {
+	                result: true/false,
+	                message: "...."
+	            }
+
+
+		6、下载文件 /download
+			参数: {
+				"path": "...."
+			}
+			成功返回:
+				文件流，application/octet-stream
+			失败返回: {
+				"result": true/false,
+				"message": "...."
+			}
+
+		7、上传文件 /upload              【使用form-data形式】
+			参数:
+				key: file<File>  value: 选取的文件，可选多个
+				key: path<String> value: 用户想要上传到的虚拟路径，如"Lunzi/Sex/"
+			返回:{
+				"result": true/false,
+				"message": "...."
+			}
+
+		文件改名 /rename
+			参数: {
+				"path": 用户的要更改的文件的虚拟路径（包括文件名）,
+				"newName": "...."
+			}
+            返回:{
+            	"result": true/false,
+            	"message": "...."
             }
-		}
 
-	11、文件编辑 /edit/ ...
-		参数: "behavior",  //"rename", "delete", "transfer", "move", "changeaccess"("toPublic"/"toPrivate")
+		文件删除 /delete
+			参数: {
+				"path": 用户的要更改的文件的虚拟路径（包括文件名）
+			}
+            返回:{
+            	"result": true/false,
+            	"message": "...."
+            }
 
+		文件移动 /move
+			参数: {
+				"path": 用户的要更改的文件的虚拟路径（包括文件名）,
+				"newPath": 新的虚拟路径（包括文件名）
+			}
+            返回:{
+            	"result": true/false,
+            	"message": "...."
+            }
+
+		更改文件权限 /changeaccess
+			参数: {
+				"path": 用户的要更改的文件的虚拟路径（包括文件名）,
+				"isPublic": true/false
+			}
+            返回:{
+            	"result": true/false,
+            	"message": "...."
+            }
+
+		转存文件 /transfer
+			参数: {
+				"path": 用户的要转存的文件的虚拟路径（包括文件名）,
+				"newPath": 转存到自己空间的虚拟路径（包括文件名）
+			}
+            返回:{
+            	"result": true/false,
+            	"message": "...."
+            }
+
+	【未完成】
+		3、获取我的文件路径树 /myindex
+    		参数: "token"
+    		返回: {
+    			result: true/fasle,
+    			message: "success"/"error message",
+    			FileItem:{
+    				.../null
+    			}
+    		}
+
+    	4、获取他人文件路径树 /index
+    		参数: "username"(要访问的用户名)
+    		返回: {
+    			result: true/false
+    			message: "success"/"error message"
+    			FileItem: {
+    				.../null
+    			}
+    		}
+
+    	8、生成分享链接 /getsharelink
+            参数:  "FileItem:{ ... }"
+            返回: {
+            	result: true/false,
+            	message: "success"/"error message",
+            	link: "Share URL"/null
+            }
+
+        9、访问分享链接 /share
+            参数: "link", "token"(可选)
+            返回: {
+            	result: true/false,
+            	message: "success"/"error message"
+            	FileItem{
+            	    .../null
+            	}
+            }
 
 后端数据结构设计：
 	FileItem{
-		val ownerName: String,
-        val realPath: Path,
-        val virtualPath: URL,
+		@Id var virtualPath: String,
+        val ownerName: String,
+        val realPath: String,
         val isUserRootPath: Boolean,
         val isDictionary: Boolean,
-        var children: List<FileItem>,
-        val isPublic: Boolean,
-        val lastModified: Date,
-        val size: Int
+        val size: Long,
+        var virtualName: String,
+        var children: List<FileItem>?,
+        var isPublic: Boolean,
+        var lastModified: Date
 	}
 
 	User{
-		val name: String,
+	    @Id val id: Int = username.hashCode(),
+        val username: String,
         val password: String,
-        val space: Int,
-        val publicFiles: List<FileItem>,
-        val privateFiles: List<FileItem>,
-        val sharedFiles: List<FileItem>
+        val space: Int? = 256000,
+        val publicFiles: List<FileItem> = ArrayList(),
+        val privateFiles: List<FileItem> = ArrayList(),
+        val sharedFiles: List<FileItem> = ArrayList()
 	}
 

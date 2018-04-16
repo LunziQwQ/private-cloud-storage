@@ -24,9 +24,7 @@ import java.util.*
 @RestController
 class FileTransferController(private val fileItemRepository: FileItemRepository) {
 
-
     data class FileMsg(val path: String)
-    data class ReplyMsg(val message: String)
 
     @RequestMapping("download")
     fun downloadFile(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: FileMsg): Any {
@@ -85,7 +83,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
     private fun getErrResponseEntity(msg: String): ResponseEntity<String> {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/json"))
-                .body(jacksonObjectMapper().writeValueAsString(ReplyMsg(msg)))
+                .body(jacksonObjectMapper().writeValueAsString(ReplyMsg(false, msg)))
     }
 
 }
