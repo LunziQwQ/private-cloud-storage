@@ -30,16 +30,16 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
     data class ReplyMsg(val message: String)
 
     @RequestMapping("download")
-    fun downloadFile(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: FileMsg): ResponseEntity<*> {
+    fun downloadFile(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: FileMsg): Any {
         val fileItem: FileItem? = fileItemRepository.findByVirtualPath(msg.path)
 
-        if (fileItem != null ) {
+        return if (fileItem != null) {
             if(fileItem.isPublic)
-                return getFileResponseEntity(fileItem)
+                getFileResponseEntity(fileItem)
             else
-                return if(user!=null && user.username == fileItem.ownerName) getFileResponseEntity(fileItem)
+                if (user != null && user.username == fileItem.ownerName) getFileResponseEntity(fileItem)
                 else getErrResponseEntity("Permisson denied")
-        }else return getErrResponseEntity("Sorry. File is invalid")
+        } else getErrResponseEntity("Sorry. File is invalid")
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
@@ -53,13 +53,12 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
         val resource = InputStreamResource(FileInputStream(file))
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=${fileItem.virtualName}")
-                .header("Content-Disposition", "attachment; filename=fuckingTest")
                 .contentLength(file.length())
                 .contentType(MediaType.parseMediaType("application/octet-stream"))
                 .body(resource)
     }
 
-    private fun getErrResponseEntity(msg:String):ResponseEntity<*>{
+    private fun getErrResponseEntity(msg: String): ResponseEntity<String> {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/json"))
                 .body(jacksonObjectMapper().writeValueAsString(ReplyMsg(msg)))

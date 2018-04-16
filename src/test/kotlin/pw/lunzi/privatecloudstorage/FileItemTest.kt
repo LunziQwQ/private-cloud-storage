@@ -18,7 +18,7 @@ class FileItemTest {
     fun testSave() {
         val testFileItem = FileItem(
                 ownerName = "Lunzi",
-                realPath = (FileItem.rootPath.toString() + "root/test"),
+                realPath = (FileItem.rootPath + "root/test"),
                 virtualPath = ("Lunzi/test"),
                 virtualName = "test",
                 isDictionary = false,

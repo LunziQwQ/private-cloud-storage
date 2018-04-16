@@ -6,8 +6,6 @@ import org.springframework.stereotype.Repository
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.*
 
 /**
@@ -30,7 +28,7 @@ data class FileItem(
         var lastModified: Date
 ){
     companion object {
-        val rootPath: Path = Paths.get("/var/www/cloudStorage/")
+        val rootPath: String = "/var/www/cloudStorage/"
     }
     fun isExist() = File(realPath).exists()
 
@@ -54,8 +52,6 @@ interface FileItemRepository : MongoRepository<FileItem, Long> {
     fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): FileItem?
     fun findByVirtualPath(virtualPath: String): FileItem?
     fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long
-    fun countByVirtualPath(virtualPath: String): Long
-
 }
 
 
