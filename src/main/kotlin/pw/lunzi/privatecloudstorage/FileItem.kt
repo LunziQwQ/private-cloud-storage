@@ -52,6 +52,8 @@ interface FileItemRepository : MongoRepository<FileItem, Long> {
     fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): FileItem?
     fun findByVirtualPath(virtualPath: String): FileItem?
     fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long
+    fun countByVirtualPath(virtualPath: String): Long
+
 }
 
 
