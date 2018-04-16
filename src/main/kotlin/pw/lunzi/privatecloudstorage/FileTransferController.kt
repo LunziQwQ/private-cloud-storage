@@ -7,12 +7,11 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
 import java.io.File
 import java.io.FileInputStream
+import java.util.*
 
 /**
  * ***********************************************
@@ -34,7 +33,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
         val fileItem: FileItem? = fileItemRepository.findByVirtualPath(msg.path)
 
         return if (fileItem != null) {
-            if(fileItem.isPublic)
+            if (fileItem.isPublic)
                 getFileResponseEntity(fileItem)
             else
                 if (user != null && user.username == fileItem.ownerName) getFileResponseEntity(fileItem)
@@ -44,8 +43,33 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
     @PostMapping("upload")
-    fun uploadFile() {
-        TODO()
+    fun uploadFile(@AuthenticationPrincipal user: UserDetails?, @RequestParam("file") files: List<MultipartFile>, @RequestParam("path") path: String): pw.lunzi.privatecloudstorage.ReplyMsg {
+        if (user == null) return ReplyMsg(false, "Permisson denied")
+        for (file in files) {
+            val name = file.originalFilename ?: "null"
+
+            val realPath = FileItem.rootPath + user.username + "/"
+
+            val pathFile = File(realPath)
+            if (!pathFile.exists()) pathFile.mkdirs()
+            val saveFile = File(realPath, name)
+            file.transferTo(saveFile)
+            val fileItem = FileItem(
+                    ownerName = user.username,
+                    lastModified = Date(),
+                    virtualName = name,
+                    realPath = realPath + name,
+                    isDictionary = false,
+                    size = file.size,
+                    virtualPath = path,
+                    isPublic = false,
+                    isUserRootPath = false,
+                    children = ArrayList()
+            )
+            fileItemRepository.save(fileItem)
+        }
+
+        return ReplyMsg(true, "Upload file success")
     }
 
     private fun getFileResponseEntity(fileItem: FileItem): ResponseEntity<InputStreamResource> {
