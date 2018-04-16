@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController
 class LoginController(private val userRepository: UserRepository) {
 
     data class RegisterMsg(val username: String, val password: String)
-    data class ReplyMsg(val result: Boolean, val message: String)
 
 
     @PostMapping("register")

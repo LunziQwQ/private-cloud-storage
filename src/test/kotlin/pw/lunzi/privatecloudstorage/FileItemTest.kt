@@ -17,15 +17,15 @@ class FileItemTest {
     @Test
     fun testFileItemRepo() {
         val testFileItem = FileItem(
-                "Lunzi",
-                (FileItem.rootPath.toString() + "root/test"),
-                ("Lunzi/test"),
-                "test",
-                false,
-                false,
-                null,
-                true,
-                Date()
+                ownerName = "Lunzi",
+                realPath = (FileItem.rootPath.toString() + "root/test"),
+                virtualPath = ("Lunzi/test"),
+                virtualName = "test",
+                isDictionary = false,
+                isUserRootPath = false,
+                children = null,
+                isPublic = true,
+                lastModified = Date()
         )
         fileItemRepository.save(testFileItem)
         Assert.assertTrue(fileItemRepository.countByVirtualPathAndOwnerName(testFileItem.virtualPath, testFileItem.ownerName) > 0)

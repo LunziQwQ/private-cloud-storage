@@ -20,14 +20,14 @@ import java.util.*
 data class FileItem(
         val ownerName: String,
         val realPath: String,
-        val virtualPath: String,
-        val virtualName: String,
         val isUserRootPath: Boolean,
         val isDictionary: Boolean,
+        val size: Long = if (isDictionary) 0 else File(realPath).length(),
+        var virtualPath: String,
+        var virtualName: String,
         var children: List<FileItem>?,
-        val isPublic: Boolean,
-        val lastModified: Date,
-        val size: Long = File(realPath).length(),
+        var isPublic: Boolean,
+        var lastModified: Date,
         @Id val id: Int = (ownerName + ":" + virtualPath).hashCode()
 ){
     companion object {
