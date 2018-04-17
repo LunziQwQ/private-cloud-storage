@@ -10,12 +10,12 @@ class SecurityConfig(private val userRepository: UserRepository) : WebSecurityCo
     override fun configure(http: HttpSecurity) {
         http
                 .csrf().disable()
-                .authorizeRequests()
+//                .authorizeRequests()
 //                .antMatchers("/api/admin/**").hasRole("OKK")
-                .anyRequest().permitAll()
-                .and()
+//                .anyRequest().permitAll()
+//                .and()
                 .formLogin()
-                .loginPage("/login.html").permitAll()
+                .loginPage("/login.html")
                 .defaultSuccessUrl("/")
                 .and().userDetailsService(MyUserDetailsService(userRepository))
     }

@@ -24,8 +24,10 @@ CloudStorageOnPrivate-Design
 
 
 	【已完成】
-		1、登录 /login
-			跳转到框架提供的登录页面，登录成功获得session，登录失败跳转到/login?error
+		1、登录 /login.html
+			使用【x-www-form-urlencoded】
+			key: username    value: xxxxxxx
+			key: password    value: xxxxxxx
 
 
 		2、注册 /register

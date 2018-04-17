@@ -28,10 +28,10 @@ class FileItemTest {
                 lastModified = Date()
         )
         fileItemRepository.save(testFileItem)
-        Assert.assertTrue(fileItemRepository.countByVirtualPathAndOwnerName(testFileItem.virtualPath, testFileItem.ownerName) > 0)
-        Assert.assertEquals(fileItemRepository.findByVirtualPathAndOwnerName(testFileItem.virtualPath, testFileItem.ownerName), testFileItem)
+        Assert.assertTrue(fileItemRepository.countByVirtualPathAndOwnerNameAndIsAvailable(testFileItem.virtualPath, testFileItem.ownerName, true) > 0)
+        Assert.assertEquals(fileItemRepository.findByVirtualPathAndOwnerNameAndIsAvailable(testFileItem.virtualPath, testFileItem.ownerName, true), testFileItem)
         fileItemRepository.delete(testFileItem)
-        Assert.assertTrue(fileItemRepository.countByVirtualPathAndOwnerName(testFileItem.virtualPath, testFileItem.ownerName) == 0L)
+        Assert.assertTrue(fileItemRepository.countByVirtualPathAndOwnerNameAndIsAvailable(testFileItem.virtualPath, testFileItem.ownerName, true) == 0L)
     }
 
     @Test
@@ -48,14 +48,14 @@ class FileItemTest {
                 lastModified = Date()
         )
         fileItemRepository.save(testFileItem)
-        Assert.assertTrue(fileItemRepository.countByVirtualPath(testFileItem.virtualPath) > 0)
-        Assert.assertEquals(fileItemRepository.findByVirtualPathAndOwnerName(testFileItem.virtualPath, testFileItem.ownerName), testFileItem)
+        Assert.assertTrue(fileItemRepository.countByVirtualPathAndIsAvailable(testFileItem.virtualPath, true) > 0)
+        Assert.assertEquals(fileItemRepository.findByVirtualPathAndOwnerNameAndIsAvailable(testFileItem.virtualPath, testFileItem.ownerName, true), testFileItem)
 
-//        val newFileItem = testFileItem.copy(ownerName = "QAQ")
-//        fileItemRepository.save(newFileItem)
-//        Assert.assertTrue(fileItemRepository.countByVirtualPath(testFileItem.virtualPath) == 1L)
-//        Assert.assertEquals(fileItemRepository.findByVirtualPath(testFileItem.virtualPath), newFileItem)
-//
-//        fileItemRepository.delete(testFileItem)
+        val newFileItem = testFileItem.copy(ownerName = "QAQ")
+        fileItemRepository.save(newFileItem)
+        Assert.assertTrue(fileItemRepository.countByVirtualPathAndIsAvailable(testFileItem.virtualPath, true) == 1L)
+        Assert.assertEquals(fileItemRepository.findByVirtualPathAndIsAvailable(testFileItem.virtualPath, true), newFileItem)
+
+        fileItemRepository.delete(testFileItem)
     }
 }

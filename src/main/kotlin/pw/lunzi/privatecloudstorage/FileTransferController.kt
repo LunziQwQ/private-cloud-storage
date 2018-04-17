@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.io.File
 import java.io.FileInputStream
+import java.security.MessageDigest
 import java.util.*
 
 /**
@@ -28,7 +29,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
 
     @RequestMapping("download")
     fun downloadFile(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: FileMsg): Any {
-        val fileItem: FileItem? = fileItemRepository.findByVirtualPath(msg.path)
+        val fileItem: FileItem? = fileItemRepository.findByVirtualPathAndIsAvailable(msg.path, true)
 
         return if (fileItem != null) {
             if (fileItem.isPublic)
@@ -50,23 +51,29 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
 
             val pathFile = File(realPath)
             if (!pathFile.exists()) pathFile.mkdirs()
-            val saveFile = File(realPath, name)
+
+            val fileMD5 = MessageDigest.getInstance("MD5")
+            fileMD5.update(file.bytes)
+            val MD5Name = bytesToHex(fileMD5.digest())
+
+            val saveFile = File(realPath, MD5Name)
+            if (saveFile.exists()) return ReplyMsg(false, "File is already exist")
+
             file.transferTo(saveFile)
             val fileItem = FileItem(
                     ownerName = user.username,
                     lastModified = Date(),
                     virtualName = name,
-                    realPath = realPath + name,
+                    realPath = realPath + MD5Name,
                     isDictionary = false,
                     size = file.size,
-                    virtualPath = path,
+                    virtualPath = path + name,
                     isPublic = false,
                     isUserRootPath = false,
                     children = ArrayList()
             )
             fileItemRepository.save(fileItem)
         }
-
         return ReplyMsg(true, "Upload file success")
     }
 
@@ -86,5 +93,15 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
                 .body(jacksonObjectMapper().writeValueAsString(ReplyMsg(false, msg)))
     }
 
+    private val hexArray = "0123456789ABCDEF".toCharArray()
+    fun bytesToHex(bytes: ByteArray): String {
+        val hexChars = CharArray(bytes.size * 2)
+        for (i in 0 until bytes.size) {
+            val v: Int = bytes[i].toInt() and 0xFF
+            hexChars[i * 2] = hexArray[v ushr 4]
+            hexChars[i * 2 + 1] = hexArray[v and 0x0F]
+        }
+        return String(hexChars)
+    }
 }
 

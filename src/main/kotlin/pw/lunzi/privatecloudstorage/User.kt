@@ -14,8 +14,8 @@ import org.springframework.stereotype.Repository
 
 data class User(
         val username: String,
-        val password: String,
-        val space: Int? = 256000,
+        var password: String,
+        var space: Int? = 256000,
         val publicFiles: List<FileItem> = ArrayList(),
         val privateFiles: List<FileItem> = ArrayList(),
         val sharedFiles: List<FileItem> = ArrayList(),
