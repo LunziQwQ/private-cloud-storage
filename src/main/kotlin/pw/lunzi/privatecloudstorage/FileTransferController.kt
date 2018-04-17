@@ -29,7 +29,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository)
 
     @RequestMapping("download")
     fun downloadFile(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: FileMsg): Any {
-        val fileItem: FileItem? = fileItemRepository.findByVirtualPathAndIsAvailable(msg.path, true)
+        val fileItem: FileItem? = fileItemRepository.findByVirtualPath(msg.path)
 
         return if (fileItem != null) {
             if (fileItem.isPublic)

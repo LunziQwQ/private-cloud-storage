@@ -24,7 +24,6 @@ data class FileItem(
         var virtualName: String,
         var children: List<FileItem>?,
         var isPublic: Boolean,
-        var isAvailable: Boolean = true,
         var lastModified: Date,
         @Id val id: Int = (ownerName + realPath).hashCode()
 ){
@@ -40,11 +39,10 @@ data class FileItem(
 
 @Repository
 interface FileItemRepository : MongoRepository<FileItem, Long> {
-    fun findByVirtualPathAndOwnerNameAndIsAvailable(virtualPath: String, ownerName: String, isAvailable: Boolean): FileItem?
-    fun findByVirtualPathAndIsAvailable(virtualPath: String, isAvailable: Boolean): FileItem?
-    fun countByVirtualPathAndOwnerNameAndIsAvailable(virtualPath: String, ownerName: String, isAvailable: Boolean): Long
-    fun countByVirtualPathAndIsAvailable(virtualPath: String, isAvailable: Boolean): Long
-    fun findByIsAvailable(isAvailable: Boolean): List<FileItem>
+    fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): FileItem?
+    fun findByVirtualPath(virtualPath: String): FileItem?
+    fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long
+    fun countByVirtualPath(virtualPath: String): Long
 }
 
 

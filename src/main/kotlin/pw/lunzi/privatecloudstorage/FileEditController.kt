@@ -22,7 +22,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun rename(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: RenameMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerNameAndIsAvailable(msg.path, user.username, true)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
         fileItem.virtualPath = fileItem.virtualPath.replace(fileItem.virtualName, msg.newName)
         fileItem.virtualName = msg.newName
@@ -37,7 +37,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun delete(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: DeleteMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerNameAndIsAvailable(msg.path, user.username, true)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
         fileItem.deleteFile()
         fileItemRepo.delete(fileItem)
@@ -50,7 +50,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun move(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: MoveMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerNameAndIsAvailable(msg.path, user.username, true)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
         fileItem.virtualPath = msg.newPath
         fileItem.lastModified = Date()
@@ -64,7 +64,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun changeAccess(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: ChangeAccessMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerNameAndIsAvailable(msg.path, user.username, true)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
         fileItem.isPublic = msg.isPublic
         fileItem.lastModified = Date()
@@ -78,12 +78,12 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun transfer(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: TransferMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerNameAndIsAvailable(msg.path, user.username, true)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
         if (fileItem.ownerName == user.username) return ReplyMsg(false, "File is already belong you")
         val newItem = fileItem.copy(ownerName = user.username, virtualPath = msg.newPath)
 
-        if (fileItemRepo.countByVirtualPathAndOwnerNameAndIsAvailable(msg.newPath, user.username, true) > 0)
+        if (fileItemRepo.countByVirtualPathAndOwnerName(msg.newPath, user.username) > 0)
             return ReplyMsg(false, "Path is already used")
 
         newItem.lastModified = Date()
