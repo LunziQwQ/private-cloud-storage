@@ -34,6 +34,8 @@ data class FileItem(
 
     fun deleteFile() = File(realPath).delete()
 
+    fun mkdir() = File(realPath).mkdir()
+
     fun getFOS(): FileOutputStream? = if (!isDictionary) FileOutputStream(File(realPath)) else null
 }
 

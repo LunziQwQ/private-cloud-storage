@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import java.util.*
 
 /**
  * ***********************************************
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController
  * ***********************************************
  */
 @RestController
-class LoginController(private val userRepository: UserRepository) {
+class LoginController(private val userRepository: UserRepository, private val fileItemRepository: FileItemRepository) {
 
     data class RegisterMsg(val username: String, val password: String)
 
@@ -27,6 +28,19 @@ class LoginController(private val userRepository: UserRepository) {
             ReplyMsg(false, "Username already used")
         } else {
             userRepository.save(User(msg.username, msg.password))
+            val userRootPath = FileItem(
+                    msg.username,
+                    FileItem.rootPath + msg.username + "/",
+                    true,
+                    true,
+                    virtualPath = msg.username + "/",
+                    virtualName = msg.username,
+                    children = ArrayList(),
+                    isPublic = true,
+                    lastModified = Date()
+            )
+            userRootPath.mkdir()
+            fileItemRepository.save(userRootPath)
             ReplyMsg(true, "Register success")
         }
     }
