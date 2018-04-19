@@ -11,20 +11,20 @@ import java.util.*
 @RestController
 class FileEditController(private val fileItemRepo: FileItemRepository) {
 
-    data class RenameMsg(val path: String, val newName: String)
-    data class DeleteMsg(val path: String)
-    data class MoveMsg(val path: String, val newPath: String)
-    data class ChangeAccessMsg(val path: String, val isPublic: Boolean)
-    data class TransferMsg(val path: String, val newPath: String)
+    data class RenameMsg(val path: String, val name: String, val newName: String)
+    data class DeleteMsg(val path: String, val name: String)
+    data class MoveMsg(val path: String, val name: String, val newPath: String)
+    data class ChangeAccessMsg(val path: String, val name: String, val isPublic: Boolean)
+    data class TransferMsg(val path: String, val name: String, val newPath: String)
+    data class MkdirMsg(val path: String, val name: String)
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
     @PostMapping("rename")
     fun rename(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: RenameMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
-        fileItem.virtualPath = fileItem.virtualPath.replace(fileItem.virtualName, msg.newName)
         fileItem.virtualName = msg.newName
         fileItem.lastModified = Date()
         fileItemRepo.save(fileItem)
@@ -37,10 +37,15 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun delete(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: DeleteMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
-        fileItem.deleteFile()
-        fileItemRepo.delete(fileItem)
+
+        if (fileItem.isDictionary) {
+            TODO()
+        } else {
+            fileItem.deleteFile()
+            fileItemRepo.delete(fileItem)
+        }
         return ReplyMsg(true, "Delete success")
 
     }
@@ -50,13 +55,19 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun move(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: MoveMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
-        fileItem.virtualPath = msg.newPath
-        fileItem.lastModified = Date()
-        fileItemRepo.save(fileItem)
-        return ReplyMsg(true, "Move success")
 
+        //TODO("check the newPath is exist")
+
+        if (fileItem.isDictionary) {
+            TODO()
+        } else {
+            fileItem.virtualPath = msg.newPath
+            fileItem.lastModified = Date()
+            fileItemRepo.save(fileItem)
+        }
+        return ReplyMsg(true, "Move success")
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
@@ -64,11 +75,16 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun changeAccess(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: ChangeAccessMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
-        fileItem.isPublic = msg.isPublic
-        fileItem.lastModified = Date()
-        fileItemRepo.save(fileItem)
+        if (fileItem.isDictionary) {
+            TODO()
+        } else {
+            fileItem.isPublic = msg.isPublic
+            fileItem.lastModified = Date()
+            fileItemRepo.save(fileItem)
+        }
+
         return ReplyMsg(true, "Change access success")
 
     }
@@ -78,16 +94,43 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun transfer(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: TransferMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndOwnerName(msg.path, user.username)
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
         if (fileItem.ownerName == user.username) return ReplyMsg(false, "File is already belong you")
-        val newItem = fileItem.copy(ownerName = user.username, virtualPath = msg.newPath)
 
-        if (fileItemRepo.countByVirtualPathAndOwnerName(msg.newPath, user.username) > 0)
-            return ReplyMsg(false, "Path is already used")
+        if (fileItem.isDictionary) {
+            TODO()
+        } else {
+            val newItem = fileItem.copy(ownerName = user.username, virtualPath = msg.newPath)
 
-        newItem.lastModified = Date()
-        fileItemRepo.save(newItem)
+            if (fileItemRepo.countByVirtualPathAndOwnerName(msg.newPath, user.username) == 0L)
+                return ReplyMsg(false, "Path is now exist")
+
+            newItem.lastModified = Date()
+            fileItemRepo.save(newItem)
+        }
+
         return ReplyMsg(true, "Transfer success")
+    }
+
+    @PreAuthorize("hasRole('ROLE_MEMBER')")
+    @PostMapping("mkdir")
+    fun makeDir(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: MkdirMsg): ReplyMsg {
+        if (user == null) return ReplyMsg(false, "Permisson denied")
+        val testExist: FileItem? = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
+
+        return if (testExist != null) ReplyMsg(false, "Dictionary is already exist")
+        else {
+            val newDir = FileItem(
+                    user.username,
+                    false,
+                    true,
+                    null,
+                    virtualPath = msg.path,
+                    virtualName = msg.name
+            )
+            fileItemRepo.save(newDir)
+            ReplyMsg(true, "Create dictionary ${msg.path} success")
+        }
     }
 }

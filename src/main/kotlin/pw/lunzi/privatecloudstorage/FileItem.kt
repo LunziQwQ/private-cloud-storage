@@ -4,7 +4,6 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
 import java.io.File
-import java.io.FileOutputStream
 import java.util.*
 
 /**
@@ -16,19 +15,18 @@ import java.util.*
  */
 data class FileItem(
         val ownerName: String,
-        val realPath: String,
         val isUserRootPath: Boolean,
         val isDictionary: Boolean,
+        val realPath: String?,
         val size: Long = if (isDictionary) 0 else File(realPath).length(),
         var virtualPath: String,
         var virtualName: String,
-        var children: List<FileItem>?,
-        var isPublic: Boolean,
-        var lastModified: Date,
+        var isPublic: Boolean = false,
+        var lastModified: Date = Date(),
         @Id val id: Int = (ownerName + realPath).hashCode()
 ){
     companion object {
-        val rootPath: String = "/var/www/cloudStorage/"
+        const val rootPath: String = "/var/www/cloudStorage/"
     }
     fun isExist() = File(realPath).exists()
 
@@ -36,15 +34,24 @@ data class FileItem(
 
     fun mkdir() = File(realPath).mkdir()
 
-    fun getFOS(): FileOutputStream? = if (!isDictionary) FileOutputStream(File(realPath)) else null
+    fun getSuperPath(): String {
+        TODO()
+    }
+
+    fun getSuperName(): String {
+        TODO()
+    }
 }
 
 @Repository
 interface FileItemRepository : MongoRepository<FileItem, Long> {
-    fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): FileItem?
-    fun findByVirtualPath(virtualPath: String): FileItem?
+    fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Array<FileItem>
+    fun findByVirtualPathAndVirtualNameAndOwnerName(virtualPath: String, virtualName: String, ownerName: String): FileItem?
+    fun findByVirtualPathAndVirtualName(virtualPath: String, virtualName: String): FileItem?
+    fun countByVirtualPathAndVirtualNameAndOwnerName(virtualPath: String, virtualName: String, ownerName: String): Long
     fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long
-    fun countByVirtualPath(virtualPath: String): Long
+    fun findByIsUserRootPathAndOwnerName(isUserRootPath: Boolean = true, ownerName: String): FileItem?
+    fun findByIsPublicAndOwnerName(isPublic: Boolean, ownerName: String): Array<FileItem>
 }
 
 

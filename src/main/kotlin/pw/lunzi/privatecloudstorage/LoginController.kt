@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import java.util.*
 
 /**
  * ***********************************************
@@ -21,7 +20,6 @@ class LoginController(private val userRepository: UserRepository, private val fi
 
     data class RegisterMsg(val username: String, val password: String)
 
-
     @PostMapping("register")
     fun register(@RequestBody msg: RegisterMsg): ReplyMsg {
         return if (userRepository.countByUsername(msg.username) > 0) {
@@ -30,14 +28,11 @@ class LoginController(private val userRepository: UserRepository, private val fi
             userRepository.save(User(msg.username, msg.password))
             val userRootPath = FileItem(
                     msg.username,
+                    true,
+                    true,
                     FileItem.rootPath + msg.username + "/",
-                    true,
-                    true,
-                    virtualPath = msg.username + "/",
-                    virtualName = msg.username,
-                    children = ArrayList(),
-                    isPublic = true,
-                    lastModified = Date()
+                    virtualPath = "/",
+                    virtualName = msg.username
             )
             userRootPath.mkdir()
             fileItemRepository.save(userRootPath)

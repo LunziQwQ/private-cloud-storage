@@ -62,7 +62,7 @@ CloudStorageOnPrivate-Design
 		7、上传文件 /upload              【使用form-data形式】
 			参数:
 				key: file<File>  value: 选取的文件，可选多个
-				key: path<String> value: 用户想要上传到的虚拟路径，如"Lunzi/Sex/"
+				key: path<String> value: 用户想要上传到的虚拟路径，如"Lunzi/Sex/，带末尾斜杠"
 			返回:{
 				"result": true/false,
 				"message": "...."
@@ -70,7 +70,8 @@ CloudStorageOnPrivate-Design
 
 		文件改名 /rename
 			参数: {
-				"path": 用户的要更改的文件的虚拟路径（包括文件名）,
+				"path": 用户的要更改的文件的虚拟路径（不包括文件名，带末尾斜杠）,
+				"name": 文件名,
 				"newName": "...."
 			}
             返回:{
@@ -80,7 +81,8 @@ CloudStorageOnPrivate-Design
 
 		文件删除 /delete
 			参数: {
-				"path": 用户的要更改的文件的虚拟路径（包括文件名）
+				"path": 用户的要更改的文件的虚拟路径（不包括文件名，带末尾斜杠）,
+				"name": 文件名
 			}
             返回:{
             	"result": true/false,
@@ -89,7 +91,8 @@ CloudStorageOnPrivate-Design
 
 		文件移动 /move
 			参数: {
-				"path": 用户的要更改的文件的虚拟路径（包括文件名）,
+				"path": 用户的要更改的文件的虚拟路径（不包括文件名，带末尾斜杠）,
+				"name": 文件名,
 				"newPath": 新的虚拟路径（包括文件名）
 			}
             返回:{
@@ -99,7 +102,8 @@ CloudStorageOnPrivate-Design
 
 		更改文件权限 /changeaccess
 			参数: {
-				"path": 用户的要更改的文件的虚拟路径（包括文件名）,
+				"path": 用户的要更改的文件的虚拟路径（不包括文件名，带末尾斜杠）,
+				"name": 文件名,
 				"isPublic": true/false
 			}
             返回:{
@@ -109,8 +113,9 @@ CloudStorageOnPrivate-Design
 
 		转存文件 /transfer
 			参数: {
-				"path": 用户的要转存的文件的虚拟路径（包括文件名）,
-				"newPath": 转存到自己空间的虚拟路径（包括文件名）
+				"path": 用户的要转存的文件的虚拟路径（不包括文件名，带末尾斜杠）,
+				"name": 文件名,
+				"newPath": 转存到自己空间的虚拟路径（不包括文件名，带末尾斜杠）
 			}
             返回:{
             	"result": true/false,

@@ -6,7 +6,6 @@ import org.junit.runner.RunWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest
 import org.springframework.test.context.junit4.SpringRunner
-import java.util.*
 
 @RunWith(SpringRunner::class)
 @DataMongoTest
@@ -19,19 +18,16 @@ class FileItemTest {
         val testFileItem = FileItem(
                 ownerName = "Lunzi",
                 realPath = (FileItem.rootPath + "root/test"),
-                virtualPath = ("Lunzi/test"),
+                virtualPath = ("Lunzi/"),
                 virtualName = "test",
                 isDictionary = false,
                 isUserRootPath = false,
-                children = null,
-                isPublic = true,
-                lastModified = Date()
+                isPublic = true
         )
         fileItemRepository.save(testFileItem)
-        Assert.assertTrue(fileItemRepository.countByVirtualPathAndOwnerName(testFileItem.virtualPath, testFileItem.ownerName) > 0)
-        Assert.assertEquals(fileItemRepository.findByVirtualPathAndOwnerName(testFileItem.virtualPath, testFileItem.ownerName), testFileItem)
+        Assert.assertEquals(fileItemRepository.findByVirtualPathAndVirtualNameAndOwnerName(testFileItem.virtualPath, testFileItem.virtualName, testFileItem.ownerName), testFileItem)
         fileItemRepository.delete(testFileItem)
-        Assert.assertTrue(fileItemRepository.countByVirtualPathAndOwnerName(testFileItem.virtualPath, testFileItem.ownerName) == 0L)
+        Assert.assertTrue(fileItemRepository.countByVirtualPathAndVirtualNameAndOwnerName(testFileItem.virtualPath, testFileItem.virtualName, testFileItem.ownerName) == 0L)
     }
 
     @Test
@@ -39,22 +35,18 @@ class FileItemTest {
         val testFileItem = FileItem(
                 ownerName = "Lunzi",
                 realPath = (FileItem.rootPath + "root/test"),
-                virtualPath = ("Lunzi/test"),
+                virtualPath = ("Lunzi/"),
                 virtualName = "test",
                 isDictionary = false,
                 isUserRootPath = false,
-                children = null,
-                isPublic = true,
-                lastModified = Date()
+                isPublic = true
         )
         fileItemRepository.save(testFileItem)
-        Assert.assertTrue(fileItemRepository.countByVirtualPath(testFileItem.virtualPath) > 0)
-        Assert.assertEquals(fileItemRepository.findByVirtualPathAndOwnerName(testFileItem.virtualPath, testFileItem.ownerName), testFileItem)
+        Assert.assertEquals(fileItemRepository.findByVirtualPathAndVirtualNameAndOwnerName(testFileItem.virtualPath, testFileItem.virtualName, testFileItem.ownerName), testFileItem)
 
         val newFileItem = testFileItem.copy(ownerName = "QAQ")
         fileItemRepository.save(newFileItem)
-        Assert.assertTrue(fileItemRepository.countByVirtualPath(testFileItem.virtualPath) == 1L)
-        Assert.assertEquals(fileItemRepository.findByVirtualPath(testFileItem.virtualPath), newFileItem)
+        Assert.assertEquals(fileItemRepository.findByVirtualPathAndVirtualNameAndOwnerName(testFileItem.virtualPath, testFileItem.virtualName, testFileItem.ownerName), newFileItem)
 
         fileItemRepository.delete(testFileItem)
     }
