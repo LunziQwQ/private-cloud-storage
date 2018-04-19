@@ -25,10 +25,23 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
 
         val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
+
+        if (fileItem.isDictionary) {
+            val oldPath: CharSequence = msg.path + msg.name
+            fileItemRepo.findByOwnerName(user.username).forEach {
+                if (it.virtualPath.contains(oldPath)) {
+                    fileItemRepo.delete(it)
+                    it.virtualPath = it.virtualPath.replaceFirst(oldPath.toString(), msg.path + msg.newName)
+                    fileItemRepo.save(it)
+                }
+            }
+        }
+        fileItemRepo.delete(fileItem)
         fileItem.virtualName = msg.newName
         fileItem.lastModified = Date()
         fileItemRepo.save(fileItem)
-        return ReplyMsg(true, "Rename success")
+
+        return ReplyMsg(true, "Rename ${msg.path}${msg.name} to ${msg.path}${msg.newName} success")
 
     }
 
@@ -59,6 +72,10 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
 
         //TODO("check the newPath is exist")
+        val newPathStr = FileItem.getSuperPath(msg.newPath)
+        val newPathName = FileItem.getSuperName(msg.newPath)
+        if (fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(newPathStr, newPathName, user.username) == null)
+            return ReplyMsg(false, "New path is invalid")
 
         if (fileItem.isDictionary) {
             TODO()
@@ -67,7 +84,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
             fileItem.lastModified = Date()
             fileItemRepo.save(fileItem)
         }
-        return ReplyMsg(true, "Move success")
+        return ReplyMsg(true, "Move ${msg.path}${msg.name} to ${msg.newPath}${msg.name} success")
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
@@ -130,7 +147,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                     virtualName = msg.name
             )
             fileItemRepo.save(newDir)
-            ReplyMsg(true, "Create dictionary ${msg.path} success")
+            ReplyMsg(true, "Create dictionary ${msg.path}${msg.name} success")
         }
     }
 }

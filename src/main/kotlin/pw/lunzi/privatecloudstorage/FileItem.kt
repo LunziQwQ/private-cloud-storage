@@ -23,10 +23,23 @@ data class FileItem(
         var virtualName: String,
         var isPublic: Boolean = false,
         var lastModified: Date = Date(),
-        @Id val id: Int = (ownerName + realPath).hashCode()
+        @Id val id: Int = (ownerName + realPath + Date()).hashCode()
 ){
     companion object {
         const val rootPath: String = "/var/www/cloudStorage/"
+        fun getLegalVirtualPath(path: String) = if (path[path.lastIndex] != '/') "$path/" else path
+
+        fun getSuperPath(virtualPath: String): String {
+            var path = getLegalVirtualPath(virtualPath)
+            path = path.substring(0, path.length - 1)
+            return path.substring(0, path.lastIndexOf('/') + 1)
+        }
+
+        fun getSuperName(virtualPath: String): String {
+            var path = getLegalVirtualPath(virtualPath)
+            path = path.substring(0, path.length - 1)
+            return path.substring(path.lastIndexOf('/') + 1)
+        }
     }
     fun isExist() = File(realPath).exists()
 
@@ -34,13 +47,7 @@ data class FileItem(
 
     fun mkdir() = File(realPath).mkdir()
 
-    fun getSuperPath(): String {
-        TODO()
-    }
 
-    fun getSuperName(): String {
-        TODO()
-    }
 }
 
 @Repository
@@ -52,6 +59,7 @@ interface FileItemRepository : MongoRepository<FileItem, Long> {
     fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long
     fun findByIsUserRootPathAndOwnerName(isUserRootPath: Boolean = true, ownerName: String): FileItem?
     fun findByIsPublicAndOwnerName(isPublic: Boolean, ownerName: String): Array<FileItem>
+    fun findByOwnerName(ownerName: String): Array<FileItem>
 }
 
 
