@@ -23,7 +23,7 @@ CloudStorageOnPrivate-Design
 	除了文件上传使用【form-data】、登录使用【x-www-form-urlencoded】以外，其他接口请求body均使用 raw(application/json)
 
 	所有修改、下载文件等需要定位文件的，需要发送两个参数: path、name
-	其中path是文件所在的路径，不包含文件名并末尾加上'\'，文件名为文件的名称，包含后缀名
+	其中path是文件所在的路径，不包含文件名,开头和末尾都加上'\'，文件名为文件的名称，包含后缀名，开头末尾不带'\'
 
 
 	【已完成】

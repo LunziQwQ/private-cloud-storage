@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import java.util.*
+import kotlin.concurrent.fixedRateTimer
 
 @RestController
 class FileEditController(private val fileItemRepo: FileItemRepository) {
@@ -32,6 +33,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 if (it.virtualPath.contains(oldPath)) {
                     fileItemRepo.delete(it)
                     it.virtualPath = it.virtualPath.replaceFirst(oldPath.toString(), msg.path + msg.newName)
+                    it.lastModified = Date()
                     fileItemRepo.save(it)
                 }
             }
@@ -63,7 +65,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                     if (fileItemRepo.findByRealPath(it.realPath).isEmpty() && !it.isDictionary) it.deleteFile()
                 }
             }
-            return ReplyMsg(true, "Delete $count items success")
+            return ReplyMsg(true, "Delete folder ${fileItem.virtualPath}${fileItem.virtualName}/ total $count items success")
         } else {
             fileItemRepo.delete(fileItem)
             if (fileItemRepo.findByRealPath(fileItem.realPath).isEmpty()) fileItem.deleteFile()
@@ -76,23 +78,37 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun move(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: MoveMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
+        //Check origin file is legal
         val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
 
-        //TODO("check the newPath is exist")
+        //Check new path is legal
         val newPathStr = FileItem.getSuperPath(msg.newPath)
         val newPathName = FileItem.getSuperName(msg.newPath)
-        if (fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(newPathStr, newPathName, user.username) == null)
-            return ReplyMsg(false, "New path is invalid")
-
-        if (fileItem.isDictionary) {
-            TODO()
-        } else {
-            fileItem.virtualPath = msg.newPath
-            fileItem.lastModified = Date()
-            fileItemRepo.save(fileItem)
+        if (fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(newPathStr, newPathName, user.username) == null) {
+            return ReplyMsg(false, "Sorry. New path is invalid")
         }
-        return ReplyMsg(true, "Move ${msg.path}${msg.name} to ${msg.newPath}${msg.name} success")
+
+
+        //Do move
+        var count = 1
+        if (fileItem.isDictionary) {
+            fileItemRepo.findByOwnerName(user.username).forEach {
+                if (it.virtualPath.contains(msg.path + msg.name)) {
+                    count++
+                    fileItemRepo.delete(it)
+                    it.virtualPath = it.virtualPath.replaceFirst(msg.path + msg.name, msg.newPath + msg.name)
+                    it.lastModified = Date()
+                    fileItemRepo.save(it)
+                }
+            }
+        }
+        fileItemRepo.delete(fileItem)
+        fileItem.virtualPath = msg.newPath
+        fileItem.lastModified = Date()
+        fileItemRepo.save(fileItem)
+
+        return ReplyMsg(true, "Move ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count items success")
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
@@ -142,20 +158,29 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     @PostMapping("mkdir")
     fun makeDir(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: MkdirMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
-        val testExist: FileItem? = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
 
-        return if (testExist != null) ReplyMsg(false, "Dictionary is already exist")
-        else {
-            val newDir = FileItem(
-                    user.username,
-                    false,
-                    true,
-                    null,
-                    virtualPath = msg.path,
-                    virtualName = msg.name
-            )
-            fileItemRepo.save(newDir)
-            ReplyMsg(true, "Create dictionary ${msg.path}${msg.name} success")
+        //Check folder is not exist
+        val testExist: FileItem? = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
+        if (testExist != null) return ReplyMsg(false, "Dictionary is already exist")
+
+        //Check super path is legal
+        if (fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(
+                        FileItem.getSuperPath(msg.path),
+                        FileItem.getSuperName(msg.path),
+                        user.username) == null) {
+            return ReplyMsg(false, "Super path not exist")
         }
+
+        val newDir = FileItem(
+                user.username,
+                false,
+                true,
+                null,
+                virtualPath = msg.path,
+                virtualName = msg.name
+        )
+        fileItemRepo.save(newDir)
+        return ReplyMsg(true, "Create dictionary ${msg.path}${msg.name} success")
+
     }
 }

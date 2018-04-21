@@ -29,7 +29,11 @@ data class FileItem(
 ){
     companion object {
         const val rootPath: String = "/var/www/cloudStorage/"
-        fun getLegalVirtualPath(path: String) = if (path[path.lastIndex] != '/') "$path/" else path
+        fun getLegalVirtualPath(path: String): String {
+            var result: String = if (path[path.lastIndex] != '/') "$path/" else path
+            result = if (path[0] != '/') "/$result" else result
+            return result
+        }
 
         fun getSuperPath(virtualPath: String): String {
             var path = getLegalVirtualPath(virtualPath)
