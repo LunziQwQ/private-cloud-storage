@@ -54,13 +54,21 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
 
         if (fileItem.isDictionary) {
-            TODO()
-        } else {
-            fileItem.deleteFile()
             fileItemRepo.delete(fileItem)
+            var count = 1
+            fileItemRepo.findByOwnerName(user.username).forEach {
+                if (it.virtualPath.contains(msg.path + msg.name)) {
+                    fileItemRepo.delete(it)
+                    count++
+                    if (fileItemRepo.findByRealPath(it.realPath).isEmpty() && !it.isDictionary) it.deleteFile()
+                }
+            }
+            return ReplyMsg(true, "Delete $count items success")
+        } else {
+            fileItemRepo.delete(fileItem)
+            if (fileItemRepo.findByRealPath(fileItem.realPath).isEmpty()) fileItem.deleteFile()
+            return ReplyMsg(true, "Delete ${fileItem.virtualPath}${fileItem.virtualName} success")
         }
-        return ReplyMsg(true, "Delete success")
-
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")

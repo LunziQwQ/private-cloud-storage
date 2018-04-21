@@ -36,28 +36,35 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
                 getFileResponseEntity(fileItem)
             else
                 if (user != null && user.username == fileItem.ownerName) getFileResponseEntity(fileItem)
-                else getErrResponseEntity("Permisson denied")
+                else getErrResponseEntity("Permission denied")
         } else getErrResponseEntity("Sorry. File is invalid")
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
     @PostMapping("upload")
-    fun uploadFile(@AuthenticationPrincipal user: UserDetails?, @RequestParam("file") files: List<MultipartFile>, @RequestParam("path") path: String): ReplyMsg {
-        if (user == null) return ReplyMsg(false, "Permisson denied")
+    fun uploadFile(@AuthenticationPrincipal user: UserDetails?, @RequestParam("file") files: List<MultipartFile>, @RequestParam("path") path: String): Array<ReplyMsg> {
+        val replyMsgList: MutableList<ReplyMsg> = mutableListOf()
+        if (user == null) return arrayOf(ReplyMsg(false, "Permission denied"))
+
 
         for (file in files) {
             val name = file.originalFilename ?: "null"
-
             val realPath = FileItem.rootPath + user.username + "/"
 
+            //Check the path is legal
+            val superPath = FileItem.getSuperPath(path)
+            val superName = FileItem.getSuperName(path)
+            if (fileItemRepository.countByVirtualPathAndVirtualNameAndOwnerName(superPath, superName, user.username) == 0L) {
+                replyMsgList.add(ReplyMsg(false, "Path is invalid"))
+                continue
+            }
+
+            //Get the file MD5
             val fileMD5 = MessageDigest.getInstance("MD5")
             fileMD5.update(file.bytes)
             val md5Name = String(Hex.encode(fileMD5.digest())).toUpperCase()
 
-            val saveFile = File(realPath, md5Name)
-            if (saveFile.exists()) return ReplyMsg(false, "File is already exist")
-
-            file.transferTo(saveFile)
+            //Save the fileItem
             val fileItem = FileItem(
                     ownerName = user.username,
                     virtualName = name,
@@ -68,8 +75,19 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
                     isUserRootPath = false
             )
             fileItemRepository.save(fileItem)
+
+            //Storage the real file
+            val saveFile = File(realPath, md5Name)
+            if (saveFile.exists()) {
+                replyMsgList.add(ReplyMsg(true, "Upload success but file is already exist"))
+            } else {
+                file.transferTo(saveFile)
+                replyMsgList.add(ReplyMsg(true, "Upload success"))
+            }
+
+            //TODO("Check the size and update all super item's size")
         }
-        return ReplyMsg(true, "Upload file success")
+        return replyMsgList.toTypedArray()
     }
 
     private fun getFileResponseEntity(fileItem: FileItem): ResponseEntity<InputStreamResource> {

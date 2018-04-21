@@ -4,6 +4,8 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.*
 
 /**
@@ -43,7 +45,7 @@ data class FileItem(
     }
     fun isExist() = File(realPath).exists()
 
-    fun deleteFile() = File(realPath).delete()
+    fun deleteFile() = Files.deleteIfExists(Paths.get(realPath))
 
     fun mkdir() = File(realPath).mkdir()
 
@@ -60,6 +62,8 @@ interface FileItemRepository : MongoRepository<FileItem, Long> {
     fun findByIsUserRootPathAndOwnerName(isUserRootPath: Boolean = true, ownerName: String): FileItem?
     fun findByIsPublicAndOwnerName(isPublic: Boolean, ownerName: String): Array<FileItem>
     fun findByOwnerName(ownerName: String): Array<FileItem>
+    fun findByRealPath(realPath: String?): Array<FileItem>
+
 }
 
 
