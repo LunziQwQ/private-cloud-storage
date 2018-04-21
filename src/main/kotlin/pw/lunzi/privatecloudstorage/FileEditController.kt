@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import java.util.*
-import kotlin.concurrent.fixedRateTimer
 
 @RestController
 class FileEditController(private val fileItemRepo: FileItemRepository) {
@@ -108,7 +107,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
         fileItem.lastModified = Date()
         fileItemRepo.save(fileItem)
 
-        return ReplyMsg(true, "Move ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count items success")
+        return ReplyMsg(true, "Move ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count ${if (count == 1) "item" else "items"} success")
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
@@ -116,42 +115,85 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     fun changeAccess(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: ChangeAccessMsg): ReplyMsg {
         if (user == null) return ReplyMsg(false, "Permisson denied")
 
+        //Check origin file is legal
         val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
-        if (fileItem.isDictionary) {
-            TODO()
-        } else {
-            fileItem.isPublic = msg.isPublic
-            fileItem.lastModified = Date()
-            fileItemRepo.save(fileItem)
-        }
 
-        return ReplyMsg(true, "Change access success")
+        //Do change
+        var count = 1
+        if (fileItem.isDictionary) {
+            fileItemRepo.findByOwnerName(user.username).forEach {
+                if (it.virtualPath.contains(msg.path + msg.name)) {
+                    fileItemRepo.delete(it)
+                    count++
+                    it.isPublic = msg.isPublic
+                    it.lastModified = Date()
+                    fileItemRepo.save(it)
+                }
+            }
+        }
+        fileItemRepo.delete(fileItem)
+        fileItem.isPublic = msg.isPublic
+        fileItem.lastModified = Date()
+        fileItemRepo.save(fileItem)
+
+        return ReplyMsg(true, "Change ${msg.path}${msg.name} total $count ${if (count == 1) "item" else "items"} access success")
 
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
     @PostMapping("transfer")
     fun transfer(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: TransferMsg): ReplyMsg {
-        if (user == null) return ReplyMsg(false, "Permisson denied")
+        if (user == null) return ReplyMsg(false, "Permission denied")
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
+        //Check origin file is legal
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualName(msg.path, msg.name)
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
+
+        //Check the file is already belong you
         if (fileItem.ownerName == user.username) return ReplyMsg(false, "File is already belong you")
 
-        if (fileItem.isDictionary) {
-            TODO()
-        } else {
-            val newItem = fileItem.copy(ownerName = user.username, virtualPath = msg.newPath)
-
-            if (fileItemRepo.countByVirtualPathAndOwnerName(msg.newPath, user.username) == 0L)
-                return ReplyMsg(false, "Path is now exist")
-
-            newItem.lastModified = Date()
-            fileItemRepo.save(newItem)
+        //Check new path is legal
+        if (fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(
+                        FileItem.getSuperPath(msg.newPath),
+                        FileItem.getSuperName(msg.newPath),
+                        user.username) == null) {
+            return ReplyMsg(false, "New path is invalid")
         }
 
-        return ReplyMsg(true, "Transfer success")
+        //Do transfer
+        var count = 1
+        if (fileItem.isDictionary) {
+            fileItemRepo.findByOwnerName(fileItem.ownerName).forEach {
+                if (it.virtualPath.contains(msg.path + msg.name)) {
+                    fileItemRepo.save(FileItem(
+                            user.username,
+                            false,
+                            it.isDictionary,
+                            it.realPath,
+                            it.size,
+                            it.virtualPath.replace(msg.path, msg.newPath),
+                            it.virtualName,
+                            it.isPublic,
+                            Date()
+                    ))
+                    count++
+                }
+            }
+        }
+        fileItemRepo.save(FileItem(
+                user.username,
+                false,
+                fileItem.isDictionary,
+                fileItem.realPath,
+                fileItem.size,
+                fileItem.virtualPath.replace(msg.path, msg.newPath),
+                fileItem.virtualName,
+                fileItem.isPublic,
+                Date()
+        ))
+
+        return ReplyMsg(true, "Transfer ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count ${if (count == 1) "item" else "items"} success")
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")

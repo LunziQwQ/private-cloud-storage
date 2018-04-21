@@ -25,7 +25,7 @@ data class FileItem(
         var virtualName: String,
         var isPublic: Boolean = false,
         var lastModified: Date = Date(),
-        @Id val id: Int = (ownerName + realPath + Date()).hashCode()
+        @Id val id: Int = (ownerName + realPath + virtualPath + virtualName + Date()).hashCode()
 ){
     companion object {
         const val rootPath: String = "/var/www/cloudStorage/"
