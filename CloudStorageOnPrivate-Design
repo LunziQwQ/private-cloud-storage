@@ -1,5 +1,8 @@
 CloudStorageOnPrivate-Design
 
+存储目录: /var/www/cloudStorage/
+数据库名称: cloudstorage
+
 需求分析：
 	基础功能：
 		1、公共可见空间 -- 允许下载 root用户登录上传
