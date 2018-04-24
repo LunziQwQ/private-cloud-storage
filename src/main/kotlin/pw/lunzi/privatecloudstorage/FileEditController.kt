@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import java.io.File
 import java.util.*
 
 @RestController
@@ -83,9 +84,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
 
         //Check new path is legal
-        val newPathStr = FileItem.getSuperPath(msg.newPath)
-        val newPathName = FileItem.getSuperName(msg.newPath)
-        if (fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(newPathStr, newPathName, user.username) == null) {
+        if (FileItem.getSuperItem(msg.newPath,user.username,fileItemRepo) == null) {
             return ReplyMsg(false, "Sorry. New path is invalid")
         }
 
@@ -167,10 +166,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
         if (fileItem.ownerName == user.username) return ReplyMsg(false, "File is already belong you")
 
         //Check new path is legal
-        if (fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(
-                        FileItem.getSuperPath(msg.newPath),
-                        FileItem.getSuperName(msg.newPath),
-                        user.username) == null) {
+        if (FileItem.getSuperItem(msg.newPath, user.username, fileItemRepo) == null) {
             return ReplyMsg(false, "New path is invalid")
         }
 
@@ -219,10 +215,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
         if (testExist != null) return ReplyMsg(false, "Dictionary is already exist")
 
         //Check super path is legal
-        if (fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(
-                        FileItem.getSuperPath(msg.path),
-                        FileItem.getSuperName(msg.path),
-                        user.username) == null) {
+        if (FileItem.getSuperItem(msg.path, user.username, fileItemRepo) == null) {
             return ReplyMsg(false, "Super path not exist")
         }
 

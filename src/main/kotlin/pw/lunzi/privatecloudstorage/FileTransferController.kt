@@ -52,9 +52,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
             val realPath = FileItem.rootPath + user.username + "/"
 
             //Check the path is legal
-            val superPath = FileItem.getSuperPath(path)
-            val superName = FileItem.getSuperName(path)
-            if (fileItemRepository.countByVirtualPathAndVirtualNameAndOwnerName(superPath, superName, user.username) == 0L) {
+            if (FileItem.getSuperItem(path,user.username,fileItemRepository) == null) {
                 replyMsgList.add(ReplyMsg(false, "Path is invalid"))
                 continue
             }
