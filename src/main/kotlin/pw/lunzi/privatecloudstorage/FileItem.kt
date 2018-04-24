@@ -1,5 +1,6 @@
 package pw.lunzi.privatecloudstorage
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
@@ -29,7 +30,7 @@ data class FileItem(
 ){
     companion object {
         const val rootPath: String = "/var/www/cloudStorage/"
-        fun getLegalVirtualPath(path: String): String {
+        private fun getLegalVirtualPath(path: String): String {
             var result: String = if (path[path.lastIndex] != '/') "$path/" else path
             result = if (path[0] != '/') "/$result" else result
             return result
@@ -46,6 +47,12 @@ data class FileItem(
             path = path.substring(0, path.length - 1)
             return path.substring(path.lastIndexOf('/') + 1)
         }
+
+        fun getSuperItem(vp: String, repo: FileItemRepository) =
+                repo.findByVirtualPathAndVirtualName(getSuperPath(vp), getSuperName(vp))
+
+        fun getSuperItem(item: FileItem, repo: FileItemRepository) =
+                repo.findByVirtualPathAndVirtualNameAndOwnerName(getSuperPath(item.virtualPath), getSuperName(item.virtualPath), item.ownerName)
     }
     fun isExist() = File(realPath).exists()
 

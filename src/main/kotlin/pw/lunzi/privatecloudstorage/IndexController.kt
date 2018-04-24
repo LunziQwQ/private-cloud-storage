@@ -4,39 +4,53 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import java.io.File
 import java.util.*
+import javax.xml.crypto.Data
 
 
 @RestController
-class IndexController{
+class IndexController(val fileItemRepository: FileItemRepository){
 
-    data class DataItem(val itemName: String, val size: Long, val isDictionary: Boolean, val isPublic: Boolean, val lastModified: Date)
-    data class FileMsg(val fileArray: Array<DataItem>) {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is FileMsg) return false
+    data class DataItem(val itemName: String,
+                        val size: Long,
+                        val isDictionary: Boolean,
+                        val isPublic: Boolean,
+                        val lastModified: Date)
+    data class IndexMsg(val username: String, val path: String)
 
-            if (!Arrays.equals(fileArray, other.fileArray)) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            return Arrays.hashCode(fileArray)
-        }
-    }
 
     @PostMapping("index")
-    fun getOtherIndex(@AuthenticationPrincipal user: UserDetails?, username: String) {
-        TODO()
+    fun getIndex(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: IndexMsg): Any {
+        val superItem = FileItem.getSuperItem(msg.path, fileItemRepository)
+                ?: return ReplyMsg(false, "Path is invalid")
 
-    }
+        val fileItemList = fileItemRepository.findByOwnerName(msg.username)
 
-    @PreAuthorize("hasRole('ROLE_MEMBER')")
-    @PostMapping("myindex")
-    fun getMyIndex(@AuthenticationPrincipal user: UserDetails?){
-        TODO()
+        val dataList = mutableListOf<DataItem>()
+
+        if (superItem.isPublic) {
+            fileItemList.forEach {
+                if (it.virtualPath == msg.path) {
+                    if (it.isPublic || (!it.isPublic && user != null && user.username == it.ownerName)) {
+                        dataList.add(DataItem(it.virtualName, it.size, it.isDictionary, it.isPublic, it.lastModified))
+                    }
+                }
+            }
+        } else {
+            if (user != null && superItem.ownerName == user.username) {
+                fileItemList.forEach {
+                    if (it.virtualPath == msg.path) {
+                        dataList.add(DataItem(it.virtualName, it.size, it.isDictionary, it.isPublic, it.lastModified))
+                    }
+                }
+            } else {
+                return ReplyMsg(false, "Permission denied")
+            }
+        }
+        return dataList
     }
 
     @PostMapping("getsharelink")

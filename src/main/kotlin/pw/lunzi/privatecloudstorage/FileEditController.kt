@@ -1,5 +1,6 @@
 package pw.lunzi.privatecloudstorage
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
@@ -14,7 +15,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     data class RenameMsg(val path: String, val name: String, val newName: String)
     data class DeleteMsg(val path: String, val name: String)
     data class MoveMsg(val path: String, val name: String, val newPath: String)
-    data class ChangeAccessMsg(val path: String, val name: String, val isPublic: Boolean)
+    data class ChangeAccessMsg(val path: String, val name: String, val isPublic: Boolean, val allowRecursion:Boolean)
     data class TransferMsg(val path: String, val name: String, val newPath: String)
     data class MkdirMsg(val path: String, val name: String)
 
@@ -121,14 +122,26 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
 
         //Do change
         var count = 1
-        if (fileItem.isDictionary) {
+        var temp = fileItem
+        while (temp.virtualPath != "/") {
+            temp = FileItem.getSuperItem(temp, fileItemRepo) ?: break
+            if (temp.isPublic != msg.isPublic) {
+                fileItemRepo.delete(temp)
+                temp.isPublic = msg.isPublic
+                temp.lastModified = Date()
+                fileItemRepo.save(temp)
+                count++
+            }
+        }
+
+        if (fileItem.isDictionary && msg.allowRecursion) {
             fileItemRepo.findByOwnerName(user.username).forEach {
                 if (it.virtualPath.contains(msg.path + msg.name)) {
                     fileItemRepo.delete(it)
-                    count++
                     it.isPublic = msg.isPublic
                     it.lastModified = Date()
                     fileItemRepo.save(it)
+                    count++
                 }
             }
         }

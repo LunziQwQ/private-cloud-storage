@@ -32,7 +32,8 @@ class LoginController(private val userRepository: UserRepository, private val fi
                     true,
                     FileItem.rootPath + msg.username + "/",
                     virtualPath = "/",
-                    virtualName = msg.username
+                    virtualName = msg.username,
+                    isPublic = true
             )
             userRootPath.mkdir()
             fileItemRepository.save(userRootPath)

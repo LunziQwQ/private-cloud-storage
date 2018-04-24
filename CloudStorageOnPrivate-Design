@@ -110,7 +110,8 @@ CloudStorageOnPrivate-Design
 			参数: {
 				"path": 用户的要更改的文件的虚拟路径（不包括文件名，带末尾斜杠）,
 				"name": 文件名,
-				"isPublic": true/false
+				"isPublic": true/false,
+				"allowRecursion": ture/false  是否递归更改子文件权限
 			}
             返回:{
             	"result": true/false,
@@ -129,24 +130,20 @@ CloudStorageOnPrivate-Design
             }
 
 	【未完成】
-		3、获取我的文件路径树 /myindex
-    		参数: "token"
-    		返回: {
-    			result: true/fasle,
-    			message: "success"/"error message",
-    			FileItem:{
-    				.../null
-    			}
+		3、获取文件路径树 /index
+		    参数: {
+		        "username": 要获取的文件所有者,
+		        "path": 要获取的目录路径
+		    }
+    		成功返回: {
+    		    [
+    		    {"itemName": String, "size": Long, "isDictionary": Boolean, "isPublic": Boolean, “lastModified”: Date},
+    		    ...
+    		    ]
     		}
-
-    	4、获取他人文件路径树 /index
-    		参数: "username"(要访问的用户名)
-    		返回: {
-    			result: true/false
-    			message: "success"/"error message"
-    			FileItem: {
-    				.../null
-    			}
+    		失败返回: {
+    		    "result": false,
+    		    "message": "......."
     		}
 
     	8、生成分享链接 /getsharelink
