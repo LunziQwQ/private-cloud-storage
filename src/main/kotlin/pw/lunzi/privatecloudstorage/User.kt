@@ -16,7 +16,6 @@ data class User(
         val username: String,
         var password: String,
         var space: Int? = 256000,
-        val sharedFiles: MutableList<FileItem> = mutableListOf(),
         @Id val id: Int = username.hashCode()
 )
 
