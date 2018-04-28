@@ -15,7 +15,7 @@ import org.springframework.stereotype.Repository
 data class User(
         val username: String,
         var password: String,
-        var space: Int? = 256000,
+        var space: Int? = 256000000,
         @Id val id: Int = username.hashCode()
 )
 

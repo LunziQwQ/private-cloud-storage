@@ -1,6 +1,5 @@
 package pw.lunzi.privatecloudstorage
 
-import com.sun.org.apache.xpath.internal.operations.Bool
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
@@ -21,7 +20,7 @@ data class FileItem(
         val isUserRootPath: Boolean,
         val isDictionary: Boolean,
         val realPath: String?,
-        val size: Long = if (isDictionary) 0 else File(realPath).length(),
+        var size: Long = if (isDictionary) 0 else File(realPath).length(),
         var virtualPath: String,
         var virtualName: String,
         var isPublic: Boolean = false,
@@ -56,6 +55,16 @@ data class FileItem(
 
         fun getSuperItem(item: FileItem, repo: FileItemRepository) =
                 repo.findByVirtualPathAndVirtualNameAndOwnerName(getSuperPath(item.virtualPath), getSuperName(item.virtualPath), item.ownerName)
+
+        /**
+         * update the Super item.size with recursion
+         */
+        fun updateSize(item: FileItem?, size: Long, repo: FileItemRepository) {
+            val temp = getSuperItem(item ?: return, repo) ?: return
+            temp.size += size
+            repo.save(temp)
+            updateSize(temp, size, repo)
+        }
     }
     fun isExist() = File(realPath).exists()
 

@@ -1,13 +1,11 @@
 package pw.lunzi.privatecloudstorage
 
-import com.sun.org.apache.xpath.internal.operations.Bool
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import java.io.File
 import java.util.*
 
 @RestController
@@ -63,12 +61,14 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 if (it.virtualPath.contains(msg.path + msg.name)) {
                     fileItemRepo.delete(it)
                     count++
+                    FileItem.updateSize(it, -1 * it.size, fileItemRepo)
                     if (fileItemRepo.findByRealPath(it.realPath).isEmpty() && !it.isDictionary) it.deleteFile()
                 }
             }
             return ReplyMsg(true, "Delete folder ${fileItem.virtualPath}${fileItem.virtualName}/ total $count items success")
         } else {
             fileItemRepo.delete(fileItem)
+            FileItem.updateSize(fileItem, -1 * fileItem.size, fileItemRepo)
             if (fileItemRepo.findByRealPath(fileItem.realPath).isEmpty()) fileItem.deleteFile()
             return ReplyMsg(true, "Delete ${fileItem.virtualPath}${fileItem.virtualName} success")
         }
@@ -96,15 +96,20 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 if (it.virtualPath.contains(msg.path + msg.name)) {
                     count++
                     fileItemRepo.delete(it)
+                    FileItem.updateSize(it, -1 * it.size, fileItemRepo)
                     it.virtualPath = it.virtualPath.replaceFirst(msg.path + msg.name, msg.newPath + msg.name)
                     it.lastModified = Date()
                     fileItemRepo.save(it)
+                    FileItem.updateSize(it, it.size, fileItemRepo)
                 }
             }
         }
         fileItemRepo.delete(fileItem)
+        FileItem.updateSize(fileItem, -1 * fileItem.size, fileItemRepo)
+
         fileItem.virtualPath = msg.newPath
         fileItem.lastModified = Date()
+        FileItem.updateSize(fileItem, fileItem.size, fileItemRepo)
         fileItemRepo.save(fileItem)
 
         return ReplyMsg(true, "Move ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count ${if (count == 1) "item" else "items"} success")
@@ -186,6 +191,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                             it.isPublic,
                             Date()
                     ))
+                    FileItem.updateSize(it, it.size, fileItemRepo)
                     count++
                 }
             }
@@ -201,6 +207,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 fileItem.isPublic,
                 Date()
         ))
+        FileItem.updateSize(fileItem, fileItem.size, fileItemRepo)
 
         return ReplyMsg(true, "Transfer ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count ${if (count == 1) "item" else "items"} success")
     }

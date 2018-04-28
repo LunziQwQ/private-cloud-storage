@@ -52,7 +52,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
             val realPath = FileItem.rootPath + user.username + "/"
 
             //Check the path is legal
-            if (FileItem.getSuperItem(path,user.username,fileItemRepository) == null) {
+            if (FileItem.getSuperItem(path, user.username, fileItemRepository) == null) {
                 replyMsgList.add(ReplyMsg(false, "Path is invalid"))
                 continue
             }
@@ -72,18 +72,24 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
                     virtualPath = path,
                     isUserRootPath = false
             )
-            fileItemRepository.save(fileItem)
 
-            //Storage the real file
-            val saveFile = File(realPath, md5Name)
-            if (saveFile.exists()) {
-                replyMsgList.add(ReplyMsg(true, "Upload success but file is already exist"))
+            //check the user's usage enough
+            val userRoot = fileItemRepository.findByVirtualPathAndOwnerName("/", user.username)
+            if (userRoot.isEmpty() || userRoot[0].size + file.size > userRepository.findByUsername(user.username)!!.space!!) {
+                replyMsgList.add(ReplyMsg(false, "User space is not enough"))
             } else {
-                file.transferTo(saveFile)
-                replyMsgList.add(ReplyMsg(true, "Upload success"))
-            }
+                fileItemRepository.save(fileItem)
+                FileItem.updateSize(fileItem, file.size, fileItemRepository)
 
-            //TODO("Check the size and update all super item's size")
+                //Storage the real file
+                val saveFile = File(realPath, md5Name)
+                if (saveFile.exists()) {
+                    replyMsgList.add(ReplyMsg(true, "Upload success but file is already exist"))
+                } else {
+                    file.transferTo(saveFile)
+                    replyMsgList.add(ReplyMsg(true, "Upload success"))
+                }
+            }
         }
         return replyMsgList.toTypedArray()
     }
