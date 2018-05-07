@@ -30,11 +30,12 @@ CloudStorageOnPrivate-Design
 
 
 	【已完成】
-		1、登录 /login.html
-			使用【x-www-form-urlencoded】
+		1、登录 /api/session POST
+			使用【x-www-form-urlencoded】POST
 			key: username    value: xxxxxxx
 			key: password    value: xxxxxxx
 
+		2、注销 /api/session DELETE
 
 		2、注册 /register
 			参数: {

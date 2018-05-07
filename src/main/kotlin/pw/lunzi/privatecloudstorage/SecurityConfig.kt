@@ -8,6 +8,8 @@ import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
@@ -19,9 +21,13 @@ class SecurityConfig(private val userRepository: UserRepository) : WebSecurityCo
                 .authorizeRequests()
 
                 .and().formLogin()
-                .loginProcessingUrl("/login").permitAll()
+                .loginProcessingUrl("/api/session").permitAll()
                 .successHandler(MyAuthenticationSuccessHandle())
                 .failureHandler(MyAuthenticationFailureHandle())
+
+                .and().logout()
+                .logoutRequestMatcher(AntPathRequestMatcher("/api/session", "DELETE"))
+                .logoutSuccessHandler(MyLogoutSuccessHandle())
 
                 .and()
                 .csrf().disable()
@@ -44,6 +50,15 @@ class MyAuthenticationSuccessHandle : AuthenticationSuccessHandler {
         response!!.setHeader("Content-Type", "application/json;charset=utf-8")
         response.status = HttpStatus.OK.value()
         response.writer.print("{\"result\":true,\"message\":\"Login success\"}")
+        response.writer.flush()
+    }
+}
+
+class MyLogoutSuccessHandle : LogoutSuccessHandler {
+    override fun onLogoutSuccess(request: HttpServletRequest?, response: HttpServletResponse?, authentication: Authentication?) {
+        response!!.setHeader("Content-Type", "application/json;charset=utf-8")
+        response.status = HttpStatus.OK.value()
+        response.writer.print("{\"result\":true,\"message\":\"Logout success\"}")
         response.writer.flush()
     }
 }
