@@ -1,22 +1,49 @@
 package pw.lunzi.privatecloudstorage
 
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
+import org.springframework.security.core.Authentication
+import org.springframework.security.core.AuthenticationException
+import org.springframework.security.web.authentication.AuthenticationFailureHandler
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 
 @Configuration
 class SecurityConfig(private val userRepository: UserRepository) : WebSecurityConfigurerAdapter() {
 
     override fun configure(http: HttpSecurity) {
         http
+                .authorizeRequests()
+
+                .and().formLogin()
+                .loginProcessingUrl("/login").permitAll()
+                .successHandler(MyAuthenticationSuccessHandle())
+                .failureHandler(MyAuthenticationFailureHandle())
+
+                .and()
                 .csrf().disable()
-//                .authorizeRequests()
-//                .antMatchers("/api/admin/**").hasRole("OKK")
-//                .anyRequest().permitAll()
-//                .and()
-                .formLogin()
-                .loginPage("/login.html")
-                .defaultSuccessUrl("/")
-                .and().userDetailsService(MyUserDetailsService(userRepository))
+                .userDetailsService(MyUserDetailsService(userRepository))
+    }
+}
+
+class MyAuthenticationFailureHandle : AuthenticationFailureHandler {
+    override fun onAuthenticationFailure(request: HttpServletRequest?, response: HttpServletResponse?, exception: AuthenticationException?) {
+        response!!.setHeader("Content-Type", "application/json;charset=utf-8")
+        response.status = HttpStatus.UNAUTHORIZED.value()
+        response.writer.print("{\"result\":false,\"message\":\"" + exception!!.message + "\"}")
+        response.writer.flush()
+    }
+}
+
+
+class MyAuthenticationSuccessHandle : AuthenticationSuccessHandler {
+    override fun onAuthenticationSuccess(request: HttpServletRequest?, response: HttpServletResponse?, authentication: Authentication?) {
+        response!!.setHeader("Content-Type", "application/json;charset=utf-8")
+        response.status = HttpStatus.OK.value()
+        response.writer.print("{\"result\":true,\"message\":\"Login success\"}")
+        response.writer.flush()
     }
 }
