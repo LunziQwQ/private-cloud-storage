@@ -29,42 +29,6 @@ data class FileItem(
 ){
     companion object {
         const val rootPath: String = "/var/www/cloudStorage/"
-        private fun getLegalVirtualPath(path: String): String {
-            var result: String = if (path[path.lastIndex] != '/') "$path/" else path
-            result = if (path[0] != '/') "/$result" else result
-            return result
-        }
-
-        private fun getSuperPath(virtualPath: String): String {
-            var path = getLegalVirtualPath(virtualPath)
-            path = path.substring(0, path.length - 1)
-            return path.substring(0, path.lastIndexOf('/') + 1)
-        }
-
-        private fun getSuperName(virtualPath: String): String {
-            var path = getLegalVirtualPath(virtualPath)
-            path = path.substring(0, path.length - 1)
-            return path.substring(path.lastIndexOf('/') + 1)
-        }
-
-        fun getSuperItem(vp: String, repo: FileItemRepository) =
-                repo.findByVirtualPathAndVirtualName(getSuperPath(vp), getSuperName(vp))
-
-        fun getSuperItem(vp: String, ownerName: String, repo: FileItemRepository) =
-                repo.findByVirtualPathAndVirtualNameAndOwnerName(getSuperPath(vp), getSuperName(vp), ownerName)
-
-        fun getSuperItem(item: FileItem, repo: FileItemRepository) =
-                repo.findByVirtualPathAndVirtualNameAndOwnerName(getSuperPath(item.virtualPath), getSuperName(item.virtualPath), item.ownerName)
-
-        /**
-         * update the Super item.size with recursion
-         */
-        fun updateSize(item: FileItem?, size: Long, repo: FileItemRepository) {
-            val temp = getSuperItem(item ?: return, repo) ?: return
-            temp.size += size
-            repo.save(temp)
-            updateSize(temp, size, repo)
-        }
     }
     fun isExist() = File(realPath).exists()
 

@@ -28,34 +28,47 @@ CloudStorageOnPrivate-Design
 	所有修改、下载文件等需要定位文件的，需要发送两个参数: path、name
 	其中path是文件所在的路径，不包含文件名,开头和末尾都加上'\'，文件名为文件的名称，包含后缀名，开头末尾不带'\'
 
-
-	【已完成】
-		1、登录 /api/session POST
-			使用【x-www-form-urlencoded】POST
+	【session】
+		/api/session POST 登录
+			x-www-form-urlencoded:
 			key: username    value: xxxxxxx
-			key: password    value: xxxxxxx
+            key: password    value: xxxxxxx
 
-		2、注销 /api/session DELETE
+		/api/session DELETE 注销
 
-		2、注册 /register
+		/api/session GET 获取当前登录状态
+
+	【user】
+		/api/users/{page} GET 返回当前页数的已注册的用户列表
+
+		/api/user/{username} GET 返回该用户名简单信息，可判断用户名是否存在
+
+		/api/user/{username} POST 注册用户
 			参数: {
-				"username": "....",
-				"password": "....
-			}
-			返回: {
-				result: true/false,
-				message: "...."
-			}
+            		"username": "....",
+            		"password": "....
+            }
+            返回: {
+            		result: true/false,
+            		message: "...."
+            }
 
-			查询用户名是否占用 /isUsed
-				参数: {"username": "...."}
-				返回: {
-	                result: true/false,
-	                message: "...."
-	            }
+		/api/user/{username} DELETE 删除用户
+		（若管理员权限可直接删除，普通用户传递正确的密码可以删除）
 
+		/api/user/{username}/{某项属性} PUT 修改用户信息
 
-		6、下载文件 /download
+	【file】
+		/api/file/{path}/{name} GET 下载文件
+
+		/api/file/{path}/{name} POST 上传文件
+
+	【item】
+		/api/items/{path} GET 获取该目录下的所有item
+
+		/api/item/{path}/{name}
+
+		6、下载文件 /file GET
 			参数: {
 				"path": "...."
 			}

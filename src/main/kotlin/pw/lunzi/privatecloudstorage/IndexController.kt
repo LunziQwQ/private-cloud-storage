@@ -2,11 +2,11 @@ package pw.lunzi.privatecloudstorage
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.util.*
+import javax.servlet.http.HttpServletRequest
+
+
 
 
 @RestController
@@ -22,18 +22,19 @@ class IndexController(val fileItemRepository: FileItemRepository, val shareItemR
     data class IndexMsg(val username: String, val path: String)
     data class GetShareUrlMsg(val path: String, val name: String, val username: String)
 
-    @PostMapping("index")
-    fun getIndex(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: IndexMsg): Any {
-        val superItem = FileItem.getSuperItem(msg.path, fileItemRepository)
+    @GetMapping("/api/items/{username}/**")
+    fun getItems(@AuthenticationPrincipal user: UserDetails?, @PathVariable username: String, request: HttpServletRequest): Any {
+        val path = if (Utils.extractPathFromPattern(request).isEmpty()) "/$username/" else "/$username/${Utils.extractPathFromPattern(request)}/"
+        val superItem = Utils.getSuperItem(path, fileItemRepository)
                 ?: return ReplyMsg(false, "Path is invalid")
 
-        val fileItemList = fileItemRepository.findByOwnerName(msg.username)
+        val fileItemList = fileItemRepository.findByOwnerName(username)
 
         val dataList = mutableListOf<DataItem>()
 
         if (superItem.isPublic) {
             fileItemList.forEach {
-                if (it.virtualPath == msg.path) {
+                if (it.virtualPath == path) {
                     if (it.isPublic || (!it.isPublic && user != null && user.username == it.ownerName)) {
                         dataList.add(DataItem(it.virtualName, it.virtualPath, it.size, it.isDictionary, it.isPublic, it.lastModified))
                     }
@@ -42,7 +43,7 @@ class IndexController(val fileItemRepository: FileItemRepository, val shareItemR
         } else {
             if (user != null && superItem.ownerName == user.username) {
                 fileItemList.forEach {
-                    if (it.virtualPath == msg.path) {
+                    if (it.virtualPath == path) {
                         dataList.add(DataItem(it.virtualName, it.virtualPath, it.size, it.isDictionary, it.isPublic, it.lastModified))
                     }
                 }
@@ -63,11 +64,11 @@ class IndexController(val fileItemRepository: FileItemRepository, val shareItemR
 
         val shareItem = ShareItem(fileItem, sharedUserName = if (user == null) "guest" else user.username)
         shareItemRepository.save(shareItem)
-        return ReplyMsg(true, shareItem.url.replace("\\\"", ""))
+        return ReplyMsg(true, shareItem.url)
     }
 
     @GetMapping("share")
-    fun getShareIndex(item: String): Any {
+    fun getShareIndex(@RequestParam item: String): Any {
         val url = "${Config.hostname}/share?item=$item"
         val shareItem = shareItemRepository.findByUrl(url)
                 ?: return ReplyMsg(false, "Share link is invalid")

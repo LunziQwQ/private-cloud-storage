@@ -61,14 +61,14 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 if (it.virtualPath.contains(msg.path + msg.name)) {
                     fileItemRepo.delete(it)
                     count++
-                    FileItem.updateSize(it, -1 * it.size, fileItemRepo)
+                    Utils.updateSize(it, -1 * it.size, fileItemRepo)
                     if (fileItemRepo.findByRealPath(it.realPath).isEmpty() && !it.isDictionary) it.deleteFile()
                 }
             }
             return ReplyMsg(true, "Delete folder ${fileItem.virtualPath}${fileItem.virtualName}/ total $count items success")
         } else {
             fileItemRepo.delete(fileItem)
-            FileItem.updateSize(fileItem, -1 * fileItem.size, fileItemRepo)
+            Utils.updateSize(fileItem, -1 * fileItem.size, fileItemRepo)
             if (fileItemRepo.findByRealPath(fileItem.realPath).isEmpty()) fileItem.deleteFile()
             return ReplyMsg(true, "Delete ${fileItem.virtualPath}${fileItem.virtualName} success")
         }
@@ -84,7 +84,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 ?: return ReplyMsg(false, "Sorry. File is invalid")
 
         //Check new path is legal
-        if (FileItem.getSuperItem(msg.newPath,user.username,fileItemRepo) == null) {
+        if (Utils.getSuperItem(msg.newPath, user.username, fileItemRepo) == null) {
             return ReplyMsg(false, "Sorry. New path is invalid")
         }
 
@@ -96,20 +96,20 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 if (it.virtualPath.contains(msg.path + msg.name)) {
                     count++
                     fileItemRepo.delete(it)
-                    FileItem.updateSize(it, -1 * it.size, fileItemRepo)
+                    Utils.updateSize(it, -1 * it.size, fileItemRepo)
                     it.virtualPath = it.virtualPath.replaceFirst(msg.path + msg.name, msg.newPath + msg.name)
                     it.lastModified = Date()
                     fileItemRepo.save(it)
-                    FileItem.updateSize(it, it.size, fileItemRepo)
+                    Utils.updateSize(it, it.size, fileItemRepo)
                 }
             }
         }
         fileItemRepo.delete(fileItem)
-        FileItem.updateSize(fileItem, -1 * fileItem.size, fileItemRepo)
+        Utils.updateSize(fileItem, -1 * fileItem.size, fileItemRepo)
 
         fileItem.virtualPath = msg.newPath
         fileItem.lastModified = Date()
-        FileItem.updateSize(fileItem, fileItem.size, fileItemRepo)
+        Utils.updateSize(fileItem, fileItem.size, fileItemRepo)
         fileItemRepo.save(fileItem)
 
         return ReplyMsg(true, "Move ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count ${if (count == 1) "item" else "items"} success")
@@ -128,7 +128,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
         var count = 1
         var temp = fileItem
         while (temp.virtualPath != "/") {
-            temp = FileItem.getSuperItem(temp, fileItemRepo) ?: break
+            temp = Utils.getSuperItem(temp, fileItemRepo) ?: break
             if (temp.isPublic != msg.isPublic) {
                 fileItemRepo.delete(temp)
                 temp.isPublic = msg.isPublic
@@ -171,7 +171,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
         if (fileItem.ownerName == user.username) return ReplyMsg(false, "File is already belong you")
 
         //Check new path is legal
-        if (FileItem.getSuperItem(msg.newPath, user.username, fileItemRepo) == null) {
+        if (Utils.getSuperItem(msg.newPath, user.username, fileItemRepo) == null) {
             return ReplyMsg(false, "New path is invalid")
         }
 
@@ -191,7 +191,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                             it.isPublic,
                             Date()
                     ))
-                    FileItem.updateSize(it, it.size, fileItemRepo)
+                    Utils.updateSize(it, it.size, fileItemRepo)
                     count++
                 }
             }
@@ -207,7 +207,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
                 fileItem.isPublic,
                 Date()
         ))
-        FileItem.updateSize(fileItem, fileItem.size, fileItemRepo)
+        Utils.updateSize(fileItem, fileItem.size, fileItemRepo)
 
         return ReplyMsg(true, "Transfer ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count ${if (count == 1) "item" else "items"} success")
     }
@@ -222,7 +222,7 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
         if (testExist != null) return ReplyMsg(false, "Dictionary is already exist")
 
         //Check super path is legal
-        if (FileItem.getSuperItem(msg.path, user.username, fileItemRepo) == null) {
+        if (Utils.getSuperItem(msg.path, user.username, fileItemRepo) == null) {
             return ReplyMsg(false, "Super path not exist")
         }
 

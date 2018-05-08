@@ -39,7 +39,7 @@ class MyAuthenticationFailureHandle : AuthenticationFailureHandler {
     override fun onAuthenticationFailure(request: HttpServletRequest?, response: HttpServletResponse?, exception: AuthenticationException?) {
         response!!.setHeader("Content-Type", "application/json;charset=utf-8")
         response.status = HttpStatus.UNAUTHORIZED.value()
-        response.writer.print("{\"result\":false,\"message\":\"" + exception!!.message + "\"}")
+        response.writer.print("{\"result\":false,\"message\":\"Username or password wrong\"}")
         response.writer.flush()
     }
 }

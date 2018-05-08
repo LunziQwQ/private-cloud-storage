@@ -52,7 +52,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
             val realPath = FileItem.rootPath + user.username + "/"
 
             //Check the path is legal
-            if (FileItem.getSuperItem(path, user.username, fileItemRepository) == null) {
+            if (Utils.getSuperItem(path, user.username, fileItemRepository) == null) {
                 replyMsgList.add(ReplyMsg(false, "Path is invalid"))
                 continue
             }
@@ -79,7 +79,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
                 replyMsgList.add(ReplyMsg(false, "User space is not enough"))
             } else {
                 fileItemRepository.save(fileItem)
-                FileItem.updateSize(fileItem, file.size, fileItemRepository)
+                Utils.updateSize(fileItem, file.size, fileItemRepository)
 
                 //Storage the real file
                 val saveFile = File(realPath, md5Name)
