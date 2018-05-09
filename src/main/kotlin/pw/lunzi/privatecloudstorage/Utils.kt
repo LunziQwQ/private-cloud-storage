@@ -1,5 +1,7 @@
 package pw.lunzi.privatecloudstorage
 
+import org.springframework.data.mongodb.repository.MongoRepository
+import org.springframework.stereotype.Repository
 import org.springframework.util.AntPathMatcher
 import org.springframework.web.servlet.HandlerMapping
 import javax.servlet.http.HttpServletRequest
@@ -54,4 +56,33 @@ class Utils {
         }
 
     }
+}
+
+data class ReplyMsg(val result: Boolean, val message: String)
+
+
+@Repository
+interface UserRepository : MongoRepository<User, Long> {
+    fun findByUsername(username: String): User?
+    fun countByUsername(username: String): Long
+}
+
+@Repository
+interface FileItemRepository : MongoRepository<FileItem, Long> {
+    fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Array<FileItem>
+    fun findByVirtualPathAndVirtualNameAndOwnerName(virtualPath: String, virtualName: String, ownerName: String): FileItem?
+    fun findByVirtualPathAndVirtualName(virtualPath: String, virtualName: String): FileItem?
+    fun countByVirtualPathAndVirtualNameAndOwnerName(virtualPath: String, virtualName: String, ownerName: String): Long
+    fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long
+    fun findByIsUserRootPathAndOwnerName(isUserRootPath: Boolean = true, ownerName: String): FileItem?
+    fun findByIsPublicAndOwnerName(isPublic: Boolean, ownerName: String): Array<FileItem>
+    fun findByOwnerName(ownerName: String): Array<FileItem>
+    fun findByRealPath(realPath: String?): Array<FileItem>
+
+}
+
+@Repository
+interface ShareItemRepository : MongoRepository<ShareItem, Long> {
+    fun findByUrl(url: String): ShareItem?
+    fun findByUrlAndSharedUserName(url: String, sharedUserName: String): ShareItem?
 }

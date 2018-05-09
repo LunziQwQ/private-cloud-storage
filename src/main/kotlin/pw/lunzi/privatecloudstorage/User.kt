@@ -19,8 +19,4 @@ data class User(
         @Id val id: Int = username.hashCode()
 )
 
-@Repository
-interface UserRepository : MongoRepository<User, Long> {
-    fun findByUsername(username: String): User?
-    fun countByUsername(username: String): Long
-}
+

@@ -1,8 +1,6 @@
 package pw.lunzi.privatecloudstorage
 
 import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.repository.MongoRepository
-import org.springframework.stereotype.Repository
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -38,21 +36,5 @@ data class FileItem(
 
 
 }
-
-@Repository
-interface FileItemRepository : MongoRepository<FileItem, Long> {
-    fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Array<FileItem>
-    fun findByVirtualPathAndVirtualNameAndOwnerName(virtualPath: String, virtualName: String, ownerName: String): FileItem?
-    fun findByVirtualPathAndVirtualName(virtualPath: String, virtualName: String): FileItem?
-    fun countByVirtualPathAndVirtualNameAndOwnerName(virtualPath: String, virtualName: String, ownerName: String): Long
-    fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long
-    fun findByIsUserRootPathAndOwnerName(isUserRootPath: Boolean = true, ownerName: String): FileItem?
-    fun findByIsPublicAndOwnerName(isPublic: Boolean, ownerName: String): Array<FileItem>
-    fun findByOwnerName(ownerName: String): Array<FileItem>
-    fun findByRealPath(realPath: String?): Array<FileItem>
-
-}
-
-
 
 

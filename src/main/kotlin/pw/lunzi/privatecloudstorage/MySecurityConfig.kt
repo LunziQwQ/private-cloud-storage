@@ -6,15 +6,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
-import org.springframework.security.web.authentication.AuthenticationFailureHandler
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 @Configuration
-class SecurityConfig(private val userRepository: UserRepository) : WebSecurityConfigurerAdapter() {
+class MySecurityConfig(private val userRepository: UserRepository) : WebSecurityConfigurerAdapter() {
 
     override fun configure(http: HttpSecurity) {
         http
@@ -22,43 +19,31 @@ class SecurityConfig(private val userRepository: UserRepository) : WebSecurityCo
 
                 .and().formLogin()
                 .loginProcessingUrl("/api/session").permitAll()
-                .successHandler(MyAuthenticationSuccessHandle())
-                .failureHandler(MyAuthenticationFailureHandle())
+                .successHandler({ _: HttpServletRequest?, response: HttpServletResponse?, _: Authentication? ->
+                    response!!.setHeader("Content-Type", "application/json;charset=utf-8")
+                    response.status = HttpStatus.OK.value()
+                    response.writer.print("{\"result\":true,\"message\":\"Login success\"}")
+                    response.writer.flush()
+
+                })
+                .failureHandler({ _: HttpServletRequest?, response: HttpServletResponse?, _: AuthenticationException? ->
+                    response!!.setHeader("Content-Type", "application/json;charset=utf-8")
+                    response.status = HttpStatus.UNAUTHORIZED.value()
+                    response.writer.print("{\"result\":false,\"message\":\"Username or password wrong\"}")
+                    response.writer.flush()
+                })
 
                 .and().logout()
                 .logoutRequestMatcher(AntPathRequestMatcher("/api/session", "DELETE"))
-                .logoutSuccessHandler(MyLogoutSuccessHandle())
+                .logoutSuccessHandler({ _: HttpServletRequest?, response: HttpServletResponse?, _: Authentication? ->
+                    response!!.setHeader("Content-Type", "application/json;charset=utf-8")
+                    response.status = HttpStatus.OK.value()
+                    response.writer.print("{\"result\":true,\"message\":\"Logout success\"}")
+                    response.writer.flush()
+                })
 
                 .and()
                 .csrf().disable()
                 .userDetailsService(MyUserDetailsService(userRepository))
-    }
-}
-
-class MyAuthenticationFailureHandle : AuthenticationFailureHandler {
-    override fun onAuthenticationFailure(request: HttpServletRequest?, response: HttpServletResponse?, exception: AuthenticationException?) {
-        response!!.setHeader("Content-Type", "application/json;charset=utf-8")
-        response.status = HttpStatus.UNAUTHORIZED.value()
-        response.writer.print("{\"result\":false,\"message\":\"Username or password wrong\"}")
-        response.writer.flush()
-    }
-}
-
-
-class MyAuthenticationSuccessHandle : AuthenticationSuccessHandler {
-    override fun onAuthenticationSuccess(request: HttpServletRequest?, response: HttpServletResponse?, authentication: Authentication?) {
-        response!!.setHeader("Content-Type", "application/json;charset=utf-8")
-        response.status = HttpStatus.OK.value()
-        response.writer.print("{\"result\":true,\"message\":\"Login success\"}")
-        response.writer.flush()
-    }
-}
-
-class MyLogoutSuccessHandle : LogoutSuccessHandler {
-    override fun onLogoutSuccess(request: HttpServletRequest?, response: HttpServletResponse?, authentication: Authentication?) {
-        response!!.setHeader("Content-Type", "application/json;charset=utf-8")
-        response.status = HttpStatus.OK.value()
-        response.writer.print("{\"result\":true,\"message\":\"Logout success\"}")
-        response.writer.flush()
     }
 }
