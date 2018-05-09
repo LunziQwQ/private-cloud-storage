@@ -14,20 +14,20 @@ class Utils {
             return AntPathMatcher().extractPathWithinPattern(bestMatchPattern, path)
         }
 
-        fun getLegalVirtualPath(path: String): String {
+        fun getLegalPath(path: String): String {
             var result: String = if (path[path.lastIndex] != '/') "$path/" else path
             result = if (path[0] != '/') "/$result" else result
             return result
         }
 
         private fun getSuperPath(virtualPath: String): String {
-            var path = getLegalVirtualPath(virtualPath)
+            var path = getLegalPath(virtualPath)
             path = path.substring(0, path.length - 1)
             return path.substring(0, path.lastIndexOf('/') + 1)
         }
 
         private fun getSuperName(virtualPath: String): String {
-            var path = getLegalVirtualPath(virtualPath)
+            var path = getLegalPath(virtualPath)
             path = path.substring(0, path.length - 1)
             return path.substring(path.lastIndexOf('/') + 1)
         }

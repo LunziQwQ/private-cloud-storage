@@ -62,19 +62,7 @@ CloudStorageOnPrivate-Design
 			}
 
 	【file】
-		/api/file/{path}/{name} GET 下载文件
-
-		/api/file/{path}/{name} POST 上传文件
-
-	【item】
-		GET /api/items/{username}/{CompletePath} 获取该目录下的所有item，CompletePath请传递完整的目录路径
-
-		/api/item/{username}/{CompletePath}
-
-		6、下载文件 /file GET
-			参数: {
-				"path": "...."
-			}
+		GET /api/file/{completePath} 下载文件(completePath为包含文件名的完整路径)
 			成功返回:
 				文件流，application/octet-stream
 			失败返回: {
@@ -82,14 +70,13 @@ CloudStorageOnPrivate-Design
 				"message": "...."
 			}
 
-		7、上传文件 /upload              【使用form-data形式】
-			参数:
-				key: file<File>  value: 选取的文件，可选多个
-				key: path<String> value: 用户想要上传到的虚拟路径，如"Lunzi/Sex/，带末尾斜杠"
-			返回:{
-				"result": true/false,
-				"message": "...."
-			}
+		POST /api/file/{path} 上传文件(Path 为要上传到的路径，不包含文件名)
+        	参数(form-data):
+        		key: file<File>  value: 选取的文件，可选多个
+
+	【item】
+		GET /api/items/{username}/{CompletePath} 获取该目录下的所有item，CompletePath请传递完整的目录路径
+
 
 		文件改名 /rename
 			参数: {
