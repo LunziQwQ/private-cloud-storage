@@ -20,6 +20,7 @@ class UserController(private val userRepository: UserRepository, private val fil
 
     data class PasswordMsg(val password: String)
     data class SpaceMsg(val space: Int)
+    data class ChangePasswordMsg(val oldPassword: String, val newPassword: String)
 
     @PostMapping("/api/user/{username}")
     fun register(@RequestBody password: PasswordMsg, @PathVariable username: String): ResponseEntity<ReplyMsg> {
@@ -76,7 +77,7 @@ class UserController(private val userRepository: UserRepository, private val fil
         return ResponseEntity(ReplyMsg(false, "Password is invalid"), HttpStatus.FORBIDDEN)
     }
 
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/api/user/{username}/space")
     fun editUserSpace(@PathVariable username: String, @RequestBody msg: SpaceMsg, @AuthenticationPrincipal userDetails: UserDetails?): ResponseEntity<ReplyMsg> {
         if (userDetails == null || !userDetails.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN")))
@@ -88,6 +89,27 @@ class UserController(private val userRepository: UserRepository, private val fil
         return ResponseEntity(ReplyMsg(true, "Change $username space to ${msg.space}"), HttpStatus.OK)
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_MEMBER')")
+    @PutMapping("/api/user/{username}/password")
+    fun editUserPassword(@PathVariable username: String, @RequestBody msg: ChangePasswordMsg, @AuthenticationPrincipal userDetails: UserDetails?): ResponseEntity<ReplyMsg> {
+        if (userDetails == null)
+            return ResponseEntity(ReplyMsg(false, "You are not login"), HttpStatus.FORBIDDEN)
+        val user = userRepository.findByUsername(username)
+                ?: return ResponseEntity(ReplyMsg(false, "Username not found"), HttpStatus.NOT_FOUND)
+
+        if (!userDetails.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            if (username != userDetails.username) {
+                return ResponseEntity(ReplyMsg(false, "You can just edit your own account"), HttpStatus.FORBIDDEN)
+            } else if (msg.oldPassword != user.password) {
+                return ResponseEntity(ReplyMsg(false, "Old password is wrong"), HttpStatus.FORBIDDEN)
+            }
+        }
+
+        user.password = msg.newPassword
+        userRepository.save(user)
+        return ResponseEntity(ReplyMsg(true, "Change $username password success"), HttpStatus.OK)
+    }
+
     @PreAuthorize("hasRole('ROLE_MEMBER')")
     @GetMapping("/api/session")
     fun whoAmI(@AuthenticationPrincipal user: UserDetails?): Any {
@@ -95,6 +117,4 @@ class UserController(private val userRepository: UserRepository, private val fil
             return ResponseEntity(ReplyMsg(false, "You are not login"), HttpStatus.UNAUTHORIZED)
         return ResponseEntity(user, HttpStatus.OK)
     }
-
-
 }

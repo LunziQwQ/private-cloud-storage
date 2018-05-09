@@ -25,38 +25,41 @@ CloudStorageOnPrivate-Design
 接口约定(JSON)：
 	除了文件上传使用【form-data】、登录使用【x-www-form-urlencoded】(POST)以外，其他接口请求body均使用 raw(application/json)
 
-	所有修改、下载文件等需要定位文件的，需要发送两个参数: path、name
-	其中path是文件所在的路径，不包含文件名,开头和末尾都加上'\'，文件名为文件的名称，包含后缀名，开头末尾不带'\'
-
 	【session】
-		/api/session POST 登录
-			x-www-form-urlencoded:
+		POST /api/session 登录
+			参数(x-www-form-urlencoded):
 			key: username    value: xxxxxxx
             key: password    value: xxxxxxx
 
-		/api/session DELETE 注销
+		DELETE /api/session 注销
 
-		/api/session GET 获取当前登录状态
+		GET /api/session 获取当前登录状态
 
 	【user】
-		/api/users/{page} GET 返回当前页数的已注册的用户列表
+		GET /api/users/{page} 返回当前页数的已注册的用户列表(page可空缺，默认返回前20条)
 
-		/api/user/{username} GET 返回该用户名简单信息，可判断用户名是否存在
+		GET /api/user/{username} 返回该用户名简单信息，可判断用户名是否存在
 
-		/api/user/{username} POST 注册用户
+		POST /api/user/{username} 注册用户
 			参数: {
-            		"username": "....",
             		"password": "....
             }
-            返回: {
-            		result: true/false,
-            		message: "...."
-            }
 
-		/api/user/{username} DELETE 删除用户
-		（若管理员权限可直接删除，普通用户传递正确的密码可以删除）
+		DELETE /api/user/{username} 删除用户（普通用户传递正确的密码可以删除，管理员传递空密码""即可）
+			参数: {
+	            "password": "...."
+	        }
 
-		/api/user/{username}/{某项属性} PUT 修改用户信息
+		PUT /api/user/{username}/space 修改用户空间大小（仅管理员可修改）
+			参数：{
+				"space": 10000
+			}
+
+		PUT /api/user/{username}/password 修改用户密码（管理员oldPassword传递""可直接修改，用户可传递正确的旧密码修改）
+			参数：{
+				"oldPassword": "..."
+				"newPassword": "..."
+			}
 
 	【file】
 		/api/file/{path}/{name} GET 下载文件
@@ -64,9 +67,9 @@ CloudStorageOnPrivate-Design
 		/api/file/{path}/{name} POST 上传文件
 
 	【item】
-		/api/items/{path} GET 获取该目录下的所有item
+		GET /api/items/{username}/{CompletePath} 获取该目录下的所有item，CompletePath请传递完整的目录路径
 
-		/api/item/{path}/{name}
+		/api/item/{username}/{CompletePath}
 
 		6、下载文件 /file GET
 			参数: {
