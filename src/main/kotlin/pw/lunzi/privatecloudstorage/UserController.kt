@@ -109,12 +109,4 @@ class UserController(private val userRepository: UserRepository, private val fil
         userRepository.save(user)
         return ResponseEntity(ReplyMsg(true, "Change $username password success"), HttpStatus.OK)
     }
-
-    @PreAuthorize("hasRole('ROLE_MEMBER')")
-    @GetMapping("/api/session")
-    fun whoAmI(@AuthenticationPrincipal user: UserDetails?): Any {
-        if (user == null)
-            return ResponseEntity(ReplyMsg(false, "You are not login"), HttpStatus.UNAUTHORIZED)
-        return ResponseEntity(user, HttpStatus.OK)
-    }
 }

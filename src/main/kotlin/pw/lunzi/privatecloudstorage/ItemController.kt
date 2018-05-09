@@ -1,15 +1,16 @@
 package pw.lunzi.privatecloudstorage
 
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.util.*
+import javax.servlet.http.HttpServletRequest
 
 @RestController
-class FileEditController(private val fileItemRepo: FileItemRepository) {
+class ItemController(private val fileItemRepo: FileItemRepository) {
 
     data class RenameMsg(val path: String, val name: String, val newName: String)
     data class DeleteMsg(val path: String, val name: String)
@@ -17,6 +18,46 @@ class FileEditController(private val fileItemRepo: FileItemRepository) {
     data class ChangeAccessMsg(val path: String, val name: String, val isPublic: Boolean, val allowRecursion:Boolean)
     data class TransferMsg(val path: String, val name: String, val newPath: String)
     data class MkdirMsg(val path: String, val name: String)
+
+
+    data class DataItem(val itemName: String,
+                        val path: String,
+                        val size: Long,
+                        val isDictionary: Boolean,
+                        val isPublic: Boolean,
+                        val lastModified: Date)
+
+    @GetMapping("/api/items/{username}/**")
+    fun getItems(@AuthenticationPrincipal user: UserDetails?, @PathVariable username: String, request: HttpServletRequest): Any {
+        val path = if (Utils.extractPathFromPattern(request).isEmpty()) "/$username/" else "/$username/${Utils.extractPathFromPattern(request)}/"
+        val superItem = Utils.getSuperItem(path, fileItemRepo)
+                ?: return ResponseEntity(ReplyMsg(false, "Path is invalid"), HttpStatus.NOT_FOUND)
+
+        val fileItemList = fileItemRepo.findByOwnerName(username)
+
+        val dataList = mutableListOf<DataItem>()
+
+        if (superItem.isPublic) {
+            fileItemList.forEach {
+                if (it.virtualPath == path) {
+                    if (it.isPublic || (!it.isPublic && user != null && user.username == it.ownerName)) {
+                        dataList.add(DataItem(it.virtualName, it.virtualPath, it.size, it.isDictionary, it.isPublic, it.lastModified))
+                    }
+                }
+            }
+        } else {
+            if (user != null && superItem.ownerName == user.username) {
+                fileItemList.forEach {
+                    if (it.virtualPath == path) {
+                        dataList.add(DataItem(it.virtualName, it.virtualPath, it.size, it.isDictionary, it.isPublic, it.lastModified))
+                    }
+                }
+            } else {
+                return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
+            }
+        }
+        return ResponseEntity(dataList, HttpStatus.OK)
+    }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
     @PostMapping("rename")

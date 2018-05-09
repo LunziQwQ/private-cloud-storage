@@ -10,50 +10,8 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.*
 import javax.servlet.http.HttpServletRequest
 
-
-
-
 @RestController
-class IndexController(val fileItemRepository: FileItemRepository, val shareItemRepository: ShareItemRepository) {
-
-    data class DataItem(val itemName: String,
-                        val path: String,
-                        val size: Long,
-                        val isDictionary: Boolean,
-                        val isPublic: Boolean,
-                        val lastModified: Date)
-
-    @GetMapping("/api/items/{username}/**")
-    fun getItems(@AuthenticationPrincipal user: UserDetails?, @PathVariable username: String, request: HttpServletRequest): Any {
-        val path = if (Utils.extractPathFromPattern(request).isEmpty()) "/$username/" else "/$username/${Utils.extractPathFromPattern(request)}/"
-        val superItem = Utils.getSuperItem(path, fileItemRepository)
-                ?: return ResponseEntity(ReplyMsg(false, "Path is invalid"), HttpStatus.NOT_FOUND)
-
-        val fileItemList = fileItemRepository.findByOwnerName(username)
-
-        val dataList = mutableListOf<DataItem>()
-
-        if (superItem.isPublic) {
-            fileItemList.forEach {
-                if (it.virtualPath == path) {
-                    if (it.isPublic || (!it.isPublic && user != null && user.username == it.ownerName)) {
-                        dataList.add(DataItem(it.virtualName, it.virtualPath, it.size, it.isDictionary, it.isPublic, it.lastModified))
-                    }
-                }
-            }
-        } else {
-            if (user != null && superItem.ownerName == user.username) {
-                fileItemList.forEach {
-                    if (it.virtualPath == path) {
-                        dataList.add(DataItem(it.virtualName, it.virtualPath, it.size, it.isDictionary, it.isPublic, it.lastModified))
-                    }
-                }
-            } else {
-                return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
-            }
-        }
-        return ResponseEntity(dataList, HttpStatus.OK)
-    }
+class ShareController(val shareItemRepository: ShareItemRepository, val fileItemRepository: FileItemRepository) {
 
     @GetMapping("/api/sharelink/{username}/**")
     fun getShareURL(@AuthenticationPrincipal user: UserDetails?, @PathVariable username: String, request: HttpServletRequest): ResponseEntity<ReplyMsg> {
@@ -81,7 +39,7 @@ class IndexController(val fileItemRepository: FileItemRepository, val shareItemR
         if ((now.time - shareItem.createTime.time) / (1000 * 60 * 60 * 24) > 30)
             return ResponseEntity(ReplyMsg(false, "Share link is expired"), HttpStatus.GONE)
 
-        return ResponseEntity(DataItem(
+        return ResponseEntity(ItemController.DataItem(
                 shareItem.item.virtualName,
                 shareItem.item.virtualPath,
                 shareItem.item.size,

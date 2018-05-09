@@ -30,7 +30,6 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
     @RequestMapping("download")
     fun downloadFile(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: FileMsg): Any {
         val fileItem: FileItem? = fileItemRepository.findByVirtualPathAndVirtualName(msg.path, msg.name)
-
         return if (fileItem != null) {
             if (fileItem.isPublic)
                 getFileResponseEntity(fileItem)
@@ -38,6 +37,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
                 if (user != null && user.username == fileItem.ownerName) getFileResponseEntity(fileItem)
                 else getErrResponseEntity("Permission denied")
         } else getErrResponseEntity("Sorry. File is invalid")
+        //TODO("Compress and download the folder")
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
@@ -75,7 +75,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
 
             //check the user's usage enough
             val userRoot = fileItemRepository.findByVirtualPathAndOwnerName("/", user.username)
-            if (userRoot.isEmpty() || userRoot[0].size + file.size > userRepository.findByUsername(user.username)!!.space!!) {
+            if (userRoot.isEmpty() || userRoot[0].size + file.size > userRepository.findByUsername(user.username)!!.space) {
                 replyMsgList.add(ReplyMsg(false, "User space is not enough"))
             } else {
                 fileItemRepository.save(fileItem)
