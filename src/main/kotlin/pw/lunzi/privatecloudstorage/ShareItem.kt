@@ -9,7 +9,7 @@ data class ShareItem(
         val item: FileItem,
         val createTime: Date = Date(),
         val sharedUserName: String = item.ownerName,
-        val url: String = "${Config.hostname}/share?item=${(item.id.toString() + createTime.toString()).hashCode()}"
+        val url: String = "${Config.hostname}/api/shareitem/${(item.id.toString() + createTime.toString()).hashCode()}"
 )
 
 @Repository

@@ -1,8 +1,12 @@
 package pw.lunzi.privatecloudstorage
 
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RestController
 import java.util.*
 import javax.servlet.http.HttpServletRequest
 
@@ -19,14 +23,11 @@ class IndexController(val fileItemRepository: FileItemRepository, val shareItemR
                         val isPublic: Boolean,
                         val lastModified: Date)
 
-    data class IndexMsg(val username: String, val path: String)
-    data class GetShareUrlMsg(val path: String, val name: String, val username: String)
-
     @GetMapping("/api/items/{username}/**")
     fun getItems(@AuthenticationPrincipal user: UserDetails?, @PathVariable username: String, request: HttpServletRequest): Any {
         val path = if (Utils.extractPathFromPattern(request).isEmpty()) "/$username/" else "/$username/${Utils.extractPathFromPattern(request)}/"
         val superItem = Utils.getSuperItem(path, fileItemRepository)
-                ?: return ReplyMsg(false, "Path is invalid")
+                ?: return ResponseEntity(ReplyMsg(false, "Path is invalid"), HttpStatus.NOT_FOUND)
 
         val fileItemList = fileItemRepository.findByOwnerName(username)
 
@@ -48,43 +49,45 @@ class IndexController(val fileItemRepository: FileItemRepository, val shareItemR
                     }
                 }
             } else {
-                return ReplyMsg(false, "Permission denied")
+                return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
             }
         }
-        return dataList
+        return ResponseEntity(dataList, HttpStatus.OK)
     }
 
-    @PostMapping("getsharelink")
-    fun getShareURL(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: GetShareUrlMsg): ReplyMsg {
-        val fileItem = fileItemRepository.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, msg.username)
-                ?: return ReplyMsg(false, "File is invalid")
+    @GetMapping("/api/sharelink/{username}/**")
+    fun getShareURL(@AuthenticationPrincipal user: UserDetails?, @PathVariable username: String, request: HttpServletRequest): ResponseEntity<ReplyMsg> {
+        val path = if (Utils.extractPathFromPattern(request).isEmpty()) "/$username/" else "/$username/${Utils.extractPathFromPattern(request)}/"
+
+        val fileItem = fileItemRepository.findByVirtualPathAndVirtualNameAndOwnerName(Utils.getPath(path), Utils.getName(path), username)
+                ?: return ResponseEntity(ReplyMsg(false, "File is invalid"), HttpStatus.NOT_FOUND)
 
         if (!fileItem.isPublic)
-            return ReplyMsg(false, "File is not public")
+            return ResponseEntity(ReplyMsg(false, "File is not public"), HttpStatus.FORBIDDEN)
 
         val shareItem = ShareItem(fileItem, sharedUserName = if (user == null) "guest" else user.username)
         shareItemRepository.save(shareItem)
-        return ReplyMsg(true, shareItem.url)
+        return ResponseEntity(ReplyMsg(true, shareItem.url), HttpStatus.OK)
     }
 
-    @GetMapping("share")
-    fun getShareIndex(@RequestParam item: String): Any {
-        val url = "${Config.hostname}/share?item=$item"
+    @GetMapping("/api/shareitem/{item}")
+    fun getShareIndex(@PathVariable item: String): Any {
+        val url = "${Config.hostname}/api/shareitem/$item"
         val shareItem = shareItemRepository.findByUrl(url)
-                ?: return ReplyMsg(false, "Share link is invalid")
+                ?: return ResponseEntity(ReplyMsg(false, "Share link is invalid"), HttpStatus.NOT_FOUND)
 
         //Check the validity
         val now = Date()
         if ((now.time - shareItem.createTime.time) / (1000 * 60 * 60 * 24) > 30)
-            return ReplyMsg(false, "Share link is expired")
+            return ResponseEntity(ReplyMsg(false, "Share link is expired"), HttpStatus.GONE)
 
-        return DataItem(
+        return ResponseEntity(DataItem(
                 shareItem.item.virtualName,
                 shareItem.item.virtualPath,
                 shareItem.item.size,
                 shareItem.item.isDictionary,
                 shareItem.item.isPublic,
                 shareItem.item.lastModified
-        )
+        ), HttpStatus.OK)
     }
 }
