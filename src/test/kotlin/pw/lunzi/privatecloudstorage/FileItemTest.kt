@@ -25,7 +25,7 @@ class FileItemTest {
                 isPublic = true
         )
         fileItemRepository.save(testFileItem)
-        Assert.assertEquals(fileItemRepository.findByVirtualPathAndVirtualNameAndOwnerName(testFileItem.virtualPath, testFileItem.virtualName, testFileItem.ownerName), testFileItem)
+        Assert.assertEquals(fileItemRepository.findByVirtualPathAndVirtualName(testFileItem.virtualPath, testFileItem.virtualName), testFileItem)
         fileItemRepository.delete(testFileItem)
         Assert.assertTrue(fileItemRepository.countByVirtualPathAndVirtualNameAndOwnerName(testFileItem.virtualPath, testFileItem.virtualName, testFileItem.ownerName) == 0L)
     }
@@ -42,11 +42,11 @@ class FileItemTest {
                 isPublic = true
         )
         fileItemRepository.save(testFileItem)
-        Assert.assertEquals(fileItemRepository.findByVirtualPathAndVirtualNameAndOwnerName(testFileItem.virtualPath, testFileItem.virtualName, testFileItem.ownerName), testFileItem)
+        Assert.assertEquals(fileItemRepository.findByVirtualPathAndVirtualName(testFileItem.virtualPath, testFileItem.virtualName), testFileItem)
 
         val newFileItem = testFileItem.copy(ownerName = "QAQ")
         fileItemRepository.save(newFileItem)
-        Assert.assertEquals(fileItemRepository.findByVirtualPathAndVirtualNameAndOwnerName(testFileItem.virtualPath, testFileItem.virtualName, testFileItem.ownerName), newFileItem)
+        Assert.assertEquals(fileItemRepository.findByVirtualPathAndVirtualName(testFileItem.virtualPath, testFileItem.virtualName), newFileItem)
 
         fileItemRepository.delete(testFileItem)
     }

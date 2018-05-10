@@ -56,7 +56,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
         if (user == null) return ResponseEntity(arrayOf(ReplyMsg(false, "Permission denied")), HttpStatus.FORBIDDEN)
 
         //Check the path is legal
-        val superItem = Utils.getSuperItem(path, user.username, fileItemRepository)
+        val superItem = Utils.getSuperItem(path, fileItemRepository)
                 ?: return ResponseEntity(arrayOf(ReplyMsg(false, "Path is invalid")), HttpStatus.NOT_FOUND)
         if (superItem.ownerName != user.username) {
             return ResponseEntity(arrayOf(ReplyMsg(false, "You don't own the path: $path")), HttpStatus.FORBIDDEN)

@@ -22,8 +22,8 @@ CloudStorageOnPrivate-Design
 
 
 
-接口约定(JSON)：
-	除了文件上传使用【form-data】、登录使用【x-www-form-urlencoded】(POST)以外，其他接口请求body均使用 raw(application/json)
+接口约定(REST)：
+	未标注类型的需要requestBody的请求均使用 raw(application/json)
 
 	【session】
 		POST /api/session 登录
@@ -74,14 +74,22 @@ CloudStorageOnPrivate-Design
         	参数(form-data):
         		key: file<File>  value: 选取的文件，可选多个
 
-	【item】
+	【items】
 		GET /api/items/{username}/{CompletePath} 获取该目录下的所有item，CompletePath请传递完整的目录路径
 
-
-		文件改名 /rename
+		POST /api/items/{newPath} 转存文件
 			参数: {
-				"path": 用户的要更改的文件的虚拟路径（不包括文件名，带末尾斜杠）,
+				"path": 用户的要转存的文件的虚拟路径（不包括文件名，带末尾斜杠）,
 				"name": 文件名,
+			}
+            返回:{
+            	"result": true/false,
+            	"message": "...."
+            }
+
+	【item】
+		PUT /api/item/{CompletePath}/name  文件重命名
+			参数: {
 				"newName": "...."
 			}
             返回:{
@@ -89,20 +97,14 @@ CloudStorageOnPrivate-Design
             	"message": "...."
             }
 
-		文件删除 /delete
-			参数: {
-				"path": 用户的要更改的文件的虚拟路径（不包括文件名，带末尾斜杠）,
-				"name": 文件名
-			}
+		DELETE /api/item/{CompletePath}  文件删除
             返回:{
             	"result": true/false,
             	"message": "...."
             }
 
-		文件移动 /move
+		PUT /api/item/{CompletePath}/path 文件移动
 			参数: {
-				"path": 用户的要更改的文件的虚拟路径（不包括文件名，带末尾斜杠）,
-				"name": 文件名,
 				"newPath": 新的虚拟路径（包括文件名）
 			}
             返回:{
@@ -110,26 +112,18 @@ CloudStorageOnPrivate-Design
             	"message": "...."
             }
 
-		更改文件权限 /changeaccess
+		PUT /api/item/{CompletePath}/access 更改文件权限
 			参数: {
-				"path": 用户的要更改的文件的虚拟路径（不包括文件名，带末尾斜杠）,
-				"name": 文件名,
 				"isPublic": true/false,
-				"allowRecursion": ture/false  是否递归更改子文件权限
+				"allowRecursion": true/false  是否递归更改子文件权限
 			}
             返回:{
             	"result": true/false,
             	"message": "...."
             }
 
-		转存文件 /transfer
-			参数: {
-				"path": 用户的要转存的文件的虚拟路径（不包括文件名，带末尾斜杠）,
-				"name": 文件名,
-				"newPath": 转存到自己空间的虚拟路径（不包括文件名，带末尾斜杠）
-			}
-            返回:{
+        POST /api/item/{CompletePath} 创建文件夹
+			返回:{
             	"result": true/false,
             	"message": "...."
             }
-

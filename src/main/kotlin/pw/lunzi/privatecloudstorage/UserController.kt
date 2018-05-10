@@ -58,8 +58,7 @@ class UserController(private val userRepository: UserRepository, private val fil
 
     @PreAuthorize("hasAnyRole('ROLE_MEMBER','ROLE_ADMIN')")
     @DeleteMapping("/api/user/{username}")
-    fun deleteUser(@PathVariable username: String, @RequestBody password: PasswordMsg, @AuthenticationPrincipal userDetails: UserDetails?): ResponseEntity<ReplyMsg> {
-        if (userDetails == null) return ResponseEntity(ReplyMsg(false, "You are not login"), HttpStatus.UNAUTHORIZED)
+    fun deleteUser(@PathVariable username: String, @RequestBody password: PasswordMsg, @AuthenticationPrincipal userDetails: UserDetails): ResponseEntity<ReplyMsg> {
         val user = userRepository.findByUsername(username)
                 ?: return ResponseEntity(ReplyMsg(false, "Username not found"), HttpStatus.NOT_FOUND)
 
@@ -79,9 +78,7 @@ class UserController(private val userRepository: UserRepository, private val fil
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/api/user/{username}/space")
-    fun editUserSpace(@PathVariable username: String, @RequestBody msg: SpaceMsg, @AuthenticationPrincipal userDetails: UserDetails?): ResponseEntity<ReplyMsg> {
-        if (userDetails == null || !userDetails.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN")))
-            return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
+    fun editUserSpace(@PathVariable username: String, @RequestBody msg: SpaceMsg, @AuthenticationPrincipal userDetails: UserDetails): ResponseEntity<ReplyMsg> {
         val user = userRepository.findByUsername(username)
                 ?: return ResponseEntity(ReplyMsg(false, "Username not found"), HttpStatus.NOT_FOUND)
         user.space = msg.space
@@ -91,9 +88,7 @@ class UserController(private val userRepository: UserRepository, private val fil
 
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_MEMBER')")
     @PutMapping("/api/user/{username}/password")
-    fun editUserPassword(@PathVariable username: String, @RequestBody msg: ChangePasswordMsg, @AuthenticationPrincipal userDetails: UserDetails?): ResponseEntity<ReplyMsg> {
-        if (userDetails == null)
-            return ResponseEntity(ReplyMsg(false, "You are not login"), HttpStatus.FORBIDDEN)
+    fun editUserPassword(@PathVariable username: String, @RequestBody msg: ChangePasswordMsg, @AuthenticationPrincipal userDetails: UserDetails): ResponseEntity<ReplyMsg> {
         val user = userRepository.findByUsername(username)
                 ?: return ResponseEntity(ReplyMsg(false, "Username not found"), HttpStatus.NOT_FOUND)
 

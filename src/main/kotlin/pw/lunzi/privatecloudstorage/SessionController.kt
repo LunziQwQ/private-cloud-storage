@@ -17,7 +17,7 @@ class SessionController {
     PostMapping("/api/session") -> login
         参数(x-www-form-urlencoded):
 		key: username    value: xxxxxxx
-        key: password    value: xxxxxxx    
+        key: password    value: xxxxxxx
     */
 
     /*
@@ -27,8 +27,6 @@ class SessionController {
     @PreAuthorize("hasRole('ROLE_MEMBER')")
     @GetMapping("/api/session")
     fun whoAmI(@AuthenticationPrincipal user: UserDetails?): Any {
-        if (user == null)
-            return ResponseEntity(ReplyMsg(false, "You are not login"), HttpStatus.UNAUTHORIZED)
         return ResponseEntity(user, HttpStatus.OK)
     }
 }

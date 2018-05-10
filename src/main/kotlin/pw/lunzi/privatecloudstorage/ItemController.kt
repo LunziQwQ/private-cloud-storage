@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -12,13 +13,10 @@ import javax.servlet.http.HttpServletRequest
 @RestController
 class ItemController(private val fileItemRepo: FileItemRepository) {
 
-    data class RenameMsg(val path: String, val name: String, val newName: String)
-    data class DeleteMsg(val path: String, val name: String)
-    data class MoveMsg(val path: String, val name: String, val newPath: String)
-    data class ChangeAccessMsg(val path: String, val name: String, val isPublic: Boolean, val allowRecursion:Boolean)
-    data class TransferMsg(val path: String, val name: String, val newPath: String)
-    data class MkdirMsg(val path: String, val name: String)
-
+    data class RenameMsg(val newName: String)
+    data class MoveMsg(val newPath: String)
+    data class ChangeAccessMsg(val isPublic: Boolean, val allowRecursion: Boolean)
+    data class TransferMsg(val path: String, val name: String)
 
     data class DataItem(val itemName: String,
                         val path: String,
@@ -29,9 +27,9 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
 
     @GetMapping("/api/items/{username}/**")
     fun getItems(@AuthenticationPrincipal user: UserDetails?, @PathVariable username: String, request: HttpServletRequest): Any {
-        val path = if (Utils.extractPathFromPattern(request).isEmpty()) "/$username/" else "/$username/${Utils.extractPathFromPattern(request)}/"
+        val path = if (Utils.extractPathFromPattern(request).isEmpty()) "/$username/" else "/$username${Utils.extractPathFromPattern(request)}"
         val superItem = Utils.getSuperItem(path, fileItemRepo)
-                ?: return ResponseEntity(ReplyMsg(false, "Path is invalid"), HttpStatus.NOT_FOUND)
+                ?: return ResponseEntity(ReplyMsg(false, "item is invalid"), HttpStatus.NOT_FOUND)
 
         val fileItemList = fileItemRepo.findByOwnerName(username)
 
@@ -46,7 +44,7 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
                 }
             }
         } else {
-            if (user != null && superItem.ownerName == user.username) {
+            if (user != null && (superItem.ownerName == user.username || user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN")))) {
                 fileItemList.forEach {
                     if (it.virtualPath == path) {
                         dataList.add(DataItem(it.virtualName, it.virtualPath, it.size, it.isDictionary, it.isPublic, it.lastModified))
@@ -60,19 +58,24 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
-    @PostMapping("rename")
-    fun rename(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: RenameMsg): ReplyMsg {
-        if (user == null) return ReplyMsg(false, "Permisson denied")
+    @PutMapping("/api/item/**/name")
+    fun rename(@AuthenticationPrincipal user: UserDetails, @RequestBody msg: RenameMsg, request: HttpServletRequest): ResponseEntity<ReplyMsg> {
+        val completePath = Utils.getPath(Utils.extractPathFromPattern(request))
+        val path = Utils.getPath(completePath)
+        val name = Utils.getName(completePath)
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
-                ?: return ReplyMsg(false, "Sorry. File is invalid")
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualName(path, name)
+                ?: return ResponseEntity(ReplyMsg(false, "Sorry. Item is invalid"), HttpStatus.NOT_FOUND)
+
+        if (fileItem.ownerName != user.username && !user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN")))
+            return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
 
         if (fileItem.isDictionary) {
-            val oldPath: CharSequence = msg.path + msg.name
+            val oldPath: CharSequence = path + name
             fileItemRepo.findByOwnerName(user.username).forEach {
                 if (it.virtualPath.contains(oldPath)) {
                     fileItemRepo.delete(it)
-                    it.virtualPath = it.virtualPath.replaceFirst(oldPath.toString(), msg.path + msg.newName)
+                    it.virtualPath = it.virtualPath.replaceFirst(oldPath.toString(), path + msg.newName)
                     it.lastModified = Date()
                     fileItemRepo.save(it)
                 }
@@ -83,62 +86,72 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
         fileItem.lastModified = Date()
         fileItemRepo.save(fileItem)
 
-        return ReplyMsg(true, "Rename ${msg.path}${msg.name} to ${msg.path}${msg.newName} success")
-
+        return ResponseEntity(ReplyMsg(true, "Rename $path$name to $path${msg.newName} success"), HttpStatus.OK)
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
-    @PostMapping("delete")
-    fun delete(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: DeleteMsg): ReplyMsg {
-        if (user == null) return ReplyMsg(false, "Permisson denied")
+    @DeleteMapping("/api/item/**")
+    fun delete(@AuthenticationPrincipal user: UserDetails, request: HttpServletRequest): ResponseEntity<ReplyMsg> {
+        val completePath = Utils.extractPathFromPattern(request)
+        val path = Utils.getPath(completePath)
+        val name = Utils.getName(completePath)
 
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
-                ?: return ReplyMsg(false, "Sorry. File is invalid")
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualName(path, name)
+                ?: return ResponseEntity(ReplyMsg(false, "Sorry. Item is invalid"), HttpStatus.NOT_FOUND)
+
+        if (fileItem.ownerName != user.username && !user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
+        }
 
         if (fileItem.isDictionary) {
             fileItemRepo.delete(fileItem)
             var count = 1
             fileItemRepo.findByOwnerName(user.username).forEach {
-                if (it.virtualPath.contains(msg.path + msg.name)) {
+                if (it.virtualPath.contains(path + name)) {
                     fileItemRepo.delete(it)
                     count++
                     Utils.updateSize(it, -1 * it.size, fileItemRepo)
                     if (fileItemRepo.findByRealPath(it.realPath).isEmpty() && !it.isDictionary) it.deleteFile()
                 }
             }
-            return ReplyMsg(true, "Delete folder ${fileItem.virtualPath}${fileItem.virtualName}/ total $count items success")
+            return ResponseEntity(ReplyMsg(true, "Delete folder ${fileItem.virtualPath}${fileItem.virtualName}/ total $count items success"), HttpStatus.OK)
         } else {
             fileItemRepo.delete(fileItem)
             Utils.updateSize(fileItem, -1 * fileItem.size, fileItemRepo)
             if (fileItemRepo.findByRealPath(fileItem.realPath).isEmpty()) fileItem.deleteFile()
-            return ReplyMsg(true, "Delete ${fileItem.virtualPath}${fileItem.virtualName} success")
+            return ResponseEntity(ReplyMsg(true, "Delete ${fileItem.virtualPath}${fileItem.virtualName} success"), HttpStatus.OK)
         }
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
-    @PostMapping("move")
-    fun move(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: MoveMsg): ReplyMsg {
-        if (user == null) return ReplyMsg(false, "Permisson denied")
+    @PutMapping("/api/item/**/path")
+    fun move(@AuthenticationPrincipal user: UserDetails, @RequestBody msg: MoveMsg, request: HttpServletRequest): ResponseEntity<ReplyMsg> {
+        val completePath = Utils.getPath(Utils.extractPathFromPattern(request))
+        val path = Utils.getPath(completePath)
+        val name = Utils.getName(completePath)
 
         //Check origin file is legal
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
-                ?: return ReplyMsg(false, "Sorry. File is invalid")
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualName(path, name)
+                ?: return ResponseEntity(ReplyMsg(false, "Sorry. Item is invalid"), HttpStatus.NOT_FOUND)
 
         //Check new path is legal
-        if (Utils.getSuperItem(msg.newPath, user.username, fileItemRepo) == null) {
-            return ReplyMsg(false, "Sorry. New path is invalid")
+        if (Utils.getSuperItem(msg.newPath, fileItemRepo) == null) {
+            return ResponseEntity(ReplyMsg(false, "Sorry. New path is invalid"), HttpStatus.BAD_REQUEST)
         }
 
+        if (fileItem.ownerName != user.username && !user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
+        }
 
         //Do move
         var count = 1
         if (fileItem.isDictionary) {
             fileItemRepo.findByOwnerName(user.username).forEach {
-                if (it.virtualPath.contains(msg.path + msg.name)) {
+                if (it.virtualPath.contains(path + name)) {
                     count++
                     fileItemRepo.delete(it)
                     Utils.updateSize(it, -1 * it.size, fileItemRepo)
-                    it.virtualPath = it.virtualPath.replaceFirst(msg.path + msg.name, msg.newPath + msg.name)
+                    it.virtualPath = it.virtualPath.replaceFirst(path + name, msg.newPath + name)
                     it.lastModified = Date()
                     fileItemRepo.save(it)
                     Utils.updateSize(it, it.size, fileItemRepo)
@@ -153,17 +166,23 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
         Utils.updateSize(fileItem, fileItem.size, fileItemRepo)
         fileItemRepo.save(fileItem)
 
-        return ReplyMsg(true, "Move ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count ${if (count == 1) "item" else "items"} success")
+        return ResponseEntity(ReplyMsg(true, "Move $path$name to ${msg.newPath}$name total $count ${if (count == 1) "item" else "items"} success"), HttpStatus.OK)
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
-    @PostMapping("changeaccess")
-    fun changeAccess(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: ChangeAccessMsg): ReplyMsg {
-        if (user == null) return ReplyMsg(false, "Permisson denied")
+    @PutMapping("/api/item/**/access")
+    fun changeAccess(@AuthenticationPrincipal user: UserDetails, @RequestBody msg: ChangeAccessMsg, request: HttpServletRequest): ResponseEntity<ReplyMsg> {
+        val completePath = Utils.getPath(Utils.extractPathFromPattern(request))
+        val path = Utils.getPath(completePath)
+        val name = Utils.getName(completePath)
 
         //Check origin file is legal
-        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
-                ?: return ReplyMsg(false, "Sorry. File is invalid")
+        val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualName(path, name)
+                ?: return ResponseEntity(ReplyMsg(false, "Sorry. Item is invalid"), HttpStatus.NOT_FOUND)
+
+        if (fileItem.ownerName != user.username && !user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
+        }
 
         //Do change
         var count = 1
@@ -181,7 +200,7 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
 
         if (fileItem.isDictionary && msg.allowRecursion) {
             fileItemRepo.findByOwnerName(user.username).forEach {
-                if (it.virtualPath.contains(msg.path + msg.name)) {
+                if (it.virtualPath.contains(path + name)) {
                     fileItemRepo.delete(it)
                     it.isPublic = msg.isPublic
                     it.lastModified = Date()
@@ -195,39 +214,41 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
         fileItem.lastModified = Date()
         fileItemRepo.save(fileItem)
 
-        return ReplyMsg(true, "Change ${msg.path}${msg.name} total $count ${if (count == 1) "item" else "items"} access success")
-
+        return ResponseEntity(ReplyMsg(true, "Change $path$name total $count ${if (count == 1) "item" else "items"} access to ${if (msg.isPublic) "public" else " private"} success"), HttpStatus.OK)
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
-    @PostMapping("transfer")
-    fun transfer(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: TransferMsg): ReplyMsg {
-        if (user == null) return ReplyMsg(false, "Permission denied")
+    @PostMapping("/api/items/**")
+    fun transfer(@AuthenticationPrincipal user: UserDetails, @RequestBody msg: TransferMsg, request: HttpServletRequest): ResponseEntity<ReplyMsg> {
+        val newPath = Utils.extractPathFromPattern(request)
 
         //Check origin file is legal
         val fileItem: FileItem = fileItemRepo.findByVirtualPathAndVirtualName(msg.path, msg.name)
-                ?: return ReplyMsg(false, "Sorry. File is invalid")
+                ?: return ResponseEntity(ReplyMsg(false, "Sorry. Item is invalid"), HttpStatus.NOT_FOUND)
 
         //Check the file is already belong you
-        if (fileItem.ownerName == user.username) return ReplyMsg(false, "File is already belong you")
+        if (fileItem.ownerName == user.username) return ResponseEntity(ReplyMsg(false, "Item is already belong you"), HttpStatus.ALREADY_REPORTED)
 
         //Check new path is legal
-        if (Utils.getSuperItem(msg.newPath, user.username, fileItemRepo) == null) {
-            return ReplyMsg(false, "New path is invalid")
+        if (Utils.getSuperItem(newPath, fileItemRepo) == null) {
+            return ResponseEntity(ReplyMsg(false, "New path is invalid"), HttpStatus.BAD_REQUEST)
         }
+
+        if (!fileItem.isPublic && !user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN")))
+            return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
 
         //Do transfer
         var count = 1
         if (fileItem.isDictionary) {
             fileItemRepo.findByOwnerName(fileItem.ownerName).forEach {
-                if (it.virtualPath.contains(msg.path + msg.name)) {
+                if (it.virtualPath.contains(msg.path + msg.name) && it.isPublic) {
                     fileItemRepo.save(FileItem(
                             user.username,
                             false,
                             it.isDictionary,
                             it.realPath,
                             it.size,
-                            it.virtualPath.replace(msg.path, msg.newPath),
+                            it.virtualPath.replace(msg.path, newPath),
                             it.virtualName,
                             it.isPublic,
                             Date()
@@ -243,40 +264,45 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
                 fileItem.isDictionary,
                 fileItem.realPath,
                 fileItem.size,
-                fileItem.virtualPath.replace(msg.path, msg.newPath),
+                fileItem.virtualPath.replace(msg.path, newPath),
                 fileItem.virtualName,
                 fileItem.isPublic,
                 Date()
         ))
         Utils.updateSize(fileItem, fileItem.size, fileItemRepo)
 
-        return ReplyMsg(true, "Transfer ${msg.path}${msg.name} to ${msg.newPath}${msg.name} total $count ${if (count == 1) "item" else "items"} success")
+        return ResponseEntity(ReplyMsg(true, "Transfer ${msg.path}${msg.name} to $newPath${msg.name} total $count ${if (count == 1) "item" else "items"} success"), HttpStatus.OK)
     }
 
     @PreAuthorize("hasRole('ROLE_MEMBER')")
-    @PostMapping("mkdir")
-    fun makeDir(@AuthenticationPrincipal user: UserDetails?, @RequestBody msg: MkdirMsg): ReplyMsg {
-        if (user == null) return ReplyMsg(false, "Permisson denied")
+    @PostMapping("/api/item/**")
+    fun makeDir(@AuthenticationPrincipal user: UserDetails, request: HttpServletRequest): ResponseEntity<ReplyMsg> {
+        val completePath = Utils.extractPathFromPattern(request)
+        val path = Utils.getPath(completePath)
+        val name = Utils.getName(completePath)
 
         //Check folder is not exist
-        val testExist: FileItem? = fileItemRepo.findByVirtualPathAndVirtualNameAndOwnerName(msg.path, msg.name, user.username)
-        if (testExist != null) return ReplyMsg(false, "Dictionary is already exist")
+        val testExist: FileItem? = fileItemRepo.findByVirtualPathAndVirtualName(path, name)
+        if (testExist != null) return ResponseEntity(ReplyMsg(false, "Dictionary is already exist"), HttpStatus.ALREADY_REPORTED)
 
         //Check super path is legal
-        if (Utils.getSuperItem(msg.path, user.username, fileItemRepo) == null) {
-            return ReplyMsg(false, "Super path not exist")
+        val superItem: FileItem = Utils.getSuperItem(path, fileItemRepo)
+                ?: return ResponseEntity(ReplyMsg(false, "Super path not exist"), HttpStatus.NOT_FOUND)
+
+        if (superItem.ownerName != user.username && !user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
         }
+
 
         val newDir = FileItem(
                 user.username,
                 false,
                 true,
                 null,
-                virtualPath = msg.path,
-                virtualName = msg.name
+                virtualPath = path,
+                virtualName = name
         )
         fileItemRepo.save(newDir)
-        return ReplyMsg(true, "Create dictionary ${msg.path}${msg.name} success")
-
+        return ResponseEntity(ReplyMsg(true, "Create dictionary $path$name success"), HttpStatus.OK)
     }
 }

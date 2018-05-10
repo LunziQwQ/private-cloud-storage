@@ -11,10 +11,11 @@ class Utils {
         fun extractPathFromPattern(request: HttpServletRequest): String {
             val path = request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE) as String
             val bestMatchPattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE) as String
-            return AntPathMatcher().extractPathWithinPattern(bestMatchPattern, path)
+            return getLegalPath(AntPathMatcher().extractPathWithinPattern(bestMatchPattern, path))
         }
 
         fun getLegalPath(path: String): String {
+            if (path.isEmpty()) return "/"
             var result: String = if (path[path.lastIndex] != '/') "$path/" else path
             result = if (path[0] != '/') "/$result" else result
             return result
@@ -39,11 +40,8 @@ class Utils {
         fun getSuperItem(vp: String, repo: FileItemRepository) =
                 repo.findByVirtualPathAndVirtualName(getSuperPath(vp), getSuperName(vp))
 
-        fun getSuperItem(vp: String, ownerName: String, repo: FileItemRepository) =
-                repo.findByVirtualPathAndVirtualNameAndOwnerName(getSuperPath(vp), getSuperName(vp), ownerName)
-
         fun getSuperItem(item: FileItem, repo: FileItemRepository) =
-                repo.findByVirtualPathAndVirtualNameAndOwnerName(getSuperPath(item.virtualPath), getSuperName(item.virtualPath), item.ownerName)
+                repo.findByVirtualPathAndVirtualName(getSuperPath(item.virtualPath), getSuperName(item.virtualPath))
 
         /**
          * update the Super item.size with recursion
@@ -70,7 +68,6 @@ interface UserRepository : MongoRepository<User, Long> {
 @Repository
 interface FileItemRepository : MongoRepository<FileItem, Long> {
     fun findByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Array<FileItem>
-    fun findByVirtualPathAndVirtualNameAndOwnerName(virtualPath: String, virtualName: String, ownerName: String): FileItem?
     fun findByVirtualPathAndVirtualName(virtualPath: String, virtualName: String): FileItem?
     fun countByVirtualPathAndVirtualNameAndOwnerName(virtualPath: String, virtualName: String, ownerName: String): Long
     fun countByVirtualPathAndOwnerName(virtualPath: String, ownerName: String): Long

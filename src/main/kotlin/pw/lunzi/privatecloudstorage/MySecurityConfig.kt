@@ -2,6 +2,7 @@ package pw.lunzi.privatecloudstorage
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
 import org.springframework.security.core.Authentication
@@ -11,11 +12,20 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 @Configuration
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 class MySecurityConfig(private val userRepository: UserRepository) : WebSecurityConfigurerAdapter() {
 
     override fun configure(http: HttpSecurity) {
         http
                 .authorizeRequests()
+
+                .and().exceptionHandling()
+                .authenticationEntryPoint({ _: HttpServletRequest, response: HttpServletResponse, _: AuthenticationException ->
+                    response.setHeader("Content-Type", "application/json;charset=utf-8")
+                    response.status = HttpStatus.FORBIDDEN.value()
+                    response.writer.print("{\"result\":false,\"message\":\"Permission denied. Maybe you are not login. Try to login first\"}")
+                    response.writer.flush()
+                })
 
                 .and().formLogin()
                 .loginProcessingUrl("/api/session").permitAll()
@@ -32,6 +42,7 @@ class MySecurityConfig(private val userRepository: UserRepository) : WebSecurity
                     response.writer.print("{\"result\":false,\"message\":\"Username or password wrong\"}")
                     response.writer.flush()
                 })
+
 
                 .and().logout()
                 .logoutRequestMatcher(AntPathRequestMatcher("/api/session", "DELETE"))
