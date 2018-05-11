@@ -1,5 +1,6 @@
 package pw.lunzi.privatecloudstorage
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -21,6 +22,19 @@ class UserController(private val userRepository: UserRepository, private val fil
     data class PasswordMsg(val password: String)
     data class SpaceMsg(val space: Int)
     data class ChangePasswordMsg(val oldPassword: String, val newPassword: String)
+    data class UserItem(val username: String, val userURL: String, val isAdmin: Boolean)
+
+    @GetMapping("/api/users/{page}", "/api/users")
+    fun getUserList(@PathVariable(required = false) page: Int?) : ResponseEntity<List<UserItem>> {
+        val index = page ?: 1
+        val userList = userRepository.findAll()
+        val msgList = mutableListOf<UserItem>()
+        for(i in 20*(index-1) until 20* index){
+            if (i >= userList.size) break
+            msgList.add(UserItem(userList[i].username, "${Config.hostname}/api/items/${userList[i].username}", userList[i].username == "root"))
+        }
+        return ResponseEntity(msgList, HttpStatus.OK)
+    }
 
     @PostMapping("/api/user/{username}")
     fun register(@RequestBody password: PasswordMsg, @PathVariable username: String): ResponseEntity<ReplyMsg> {
