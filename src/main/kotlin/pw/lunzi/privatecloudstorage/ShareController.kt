@@ -36,6 +36,11 @@ class ShareController(val shareItemRepository: ShareItemRepository, val fileItem
         val shareItem = shareItemRepository.findByUrl(url)
                 ?: return ResponseEntity(ReplyMsg(false, "Share link is invalid"), HttpStatus.NOT_FOUND)
 
+        //Check item have delete
+        if (!fileItemRepository.existsById(shareItem.item.id.toLong())) {
+            return ResponseEntity(ReplyMsg(false, "Share file is already be deleted"), HttpStatus.GONE)
+        }
+
         //Check the validity
         val now = Date()
         if ((now.time - shareItem.createTime.time) / (1000 * 60 * 60 * 24) > 30)
