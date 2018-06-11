@@ -13,6 +13,8 @@ import java.util.*
  * Not allowed to copy without permission.
  * ***********************************************
  */
+
+
 data class FileItem(
         val ownerName: String,
         val isUserRootPath: Boolean,
@@ -24,17 +26,14 @@ data class FileItem(
         var isPublic: Boolean = false,
         var lastModified: Date = Date(),
         @Id val id: Int = (ownerName + realPath + virtualPath + virtualName + Date()).hashCode()
-){
-    companion object {
-        const val rootPath: String = "/var/www/cloudStorage/"
-    }
-    fun isExist() = File(realPath).exists()
+) {
+    fun isExist() = File(getLocalRealPath()).exists()
 
-    fun deleteFile() = Files.deleteIfExists(Paths.get(realPath))
+    fun deleteFile() = Files.deleteIfExists(Paths.get(getLocalRealPath()))
 
-    fun mkdir() = File(realPath).mkdir()
+    fun mkdir() = File(getLocalRealPath()).mkdir()
 
-
+    fun getLocalRealPath() = Config.savePath + realPath
 }
 
 

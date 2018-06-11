@@ -46,7 +46,7 @@ class UserController(private val userRepository: UserRepository, private val fil
                     username,
                     true,
                     true,
-                    FileItem.rootPath + username + "/",
+                    "$username/",
                     virtualPath = "/",
                     virtualName = username,
                     isPublic = true

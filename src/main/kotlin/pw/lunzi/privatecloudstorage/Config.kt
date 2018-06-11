@@ -9,4 +9,7 @@ import org.springframework.stereotype.Component
 object Config {
     @Value("\${config.hostname}")
     lateinit var hostname: String
+
+    @Value("\${config.save-path}")
+    lateinit var savePath: String
 }

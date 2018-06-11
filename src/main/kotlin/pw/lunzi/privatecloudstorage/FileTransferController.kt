@@ -64,7 +64,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
 
         for (file in files) {
             val name = file.originalFilename ?: "null"
-            val realPath = FileItem.rootPath + user.username + "/"
+
 
             //Check if exist
             if (fileItemRepository.countByVirtualPathAndVirtualNameAndOwnerName(path, name, user.username) > 0) {
@@ -81,7 +81,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
             val fileItem = FileItem(
                     ownerName = user.username,
                     virtualName = name,
-                    realPath = realPath + md5Name,
+                    realPath = user.username + "/" + md5Name,
                     isDictionary = false,
                     size = file.size,
                     virtualPath = path,
@@ -97,7 +97,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
                 Utils.updateSize(fileItem, file.size, fileItemRepository)
 
                 //Storage the real file
-                val saveFile = File(realPath, md5Name)
+                val saveFile = File(fileItem.getLocalRealPath())
                 if (saveFile.exists()) {
                     replyMsgList.add(ReplyMsg(true, "$name -> Upload success but file is already exist"))
                 } else {
@@ -110,7 +110,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
     }
 
     private fun getFileResponseEntity(fileItem: FileItem): ResponseEntity<InputStreamResource> {
-        val file = File(fileItem.realPath)
+        val file = File(fileItem.getLocalRealPath())
         val resource = InputStreamResource(FileInputStream(file))
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=${fileItem.virtualName}")
