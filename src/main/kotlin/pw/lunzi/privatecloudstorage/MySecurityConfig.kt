@@ -29,28 +29,30 @@ class MySecurityConfig(private val userRepository: UserRepository) : WebSecurity
 
                 .and().formLogin()
                 .loginProcessingUrl("/api/session").permitAll()
-                .successHandler({ _: HttpServletRequest?, response: HttpServletResponse?, _: Authentication? ->
+                .successHandler({ _: HttpServletRequest?, response: HttpServletResponse?, a: Authentication? ->
                     response!!.setHeader("Content-Type", "application/json;charset=utf-8")
                     response.status = HttpStatus.OK.value()
                     response.writer.print("{\"result\":true,\"message\":\"Login success\"}")
                     response.writer.flush()
-
+                    loginLog.info("User \"${a!!.name}\" login success")
                 })
-                .failureHandler({ _: HttpServletRequest?, response: HttpServletResponse?, _: AuthenticationException? ->
+                .failureHandler({ _: HttpServletRequest?, response: HttpServletResponse?, a: AuthenticationException? ->
                     response!!.setHeader("Content-Type", "application/json;charset=utf-8")
-                    response.status = HttpStatus.UNAUTHORIZED.value()
+                    response.status = HttpStatus.FORBIDDEN.value()
                     response.writer.print("{\"result\":false,\"message\":\"Username or password wrong\"}")
                     response.writer.flush()
+                    loginLog.warn("User login failed")
                 })
 
 
                 .and().logout()
                 .logoutRequestMatcher(AntPathRequestMatcher("/api/session", "DELETE"))
-                .logoutSuccessHandler({ _: HttpServletRequest?, response: HttpServletResponse?, _: Authentication? ->
+                .logoutSuccessHandler({ _: HttpServletRequest?, response: HttpServletResponse?, a: Authentication? ->
                     response!!.setHeader("Content-Type", "application/json;charset=utf-8")
                     response.status = HttpStatus.OK.value()
                     response.writer.print("{\"result\":true,\"message\":\"Logout success\"}")
                     response.writer.flush()
+                    loginLog.info("User \"${a!!.name}\" logout success")
                 })
 
                 .and()

@@ -29,50 +29,84 @@ import javax.servlet.http.HttpServletRequest
 @RestController
 class FileTransferController(private val fileItemRepository: FileItemRepository, private val userRepository: UserRepository) {
 
+    /**
+     * 下载文件
+     */
     @GetMapping("/api/file/**")
     fun downloadFile(@AuthenticationPrincipal user: UserDetails?, request: HttpServletRequest): Any {
+        //剥离出**部分的文件路径
         val completePath = Utils.extractPathFromPattern(request)
         val path = Utils.getPath(completePath)
         val name = Utils.getName(completePath)
+
+        //根据路径获取Item
         val fileItem: FileItem? = fileItemRepository.findByVirtualPathAndVirtualName(path, name)
-        return if (fileItem != null) {
+
+        //若Item 公开或拥有权限 且 不为文件夹，启动下载，返回文件流
+        return if (fileItem != null && !fileItem.isDictionary) {
             if (fileItem.isPublic) {
+                fileTransLog.info("User \"${if (user != null) user.username else "Guest"}\" download \"$completePath\" success")
                 getFileResponseEntity(fileItem)
             } else {
-                if (user != null && user.username == fileItem.ownerName) getFileResponseEntity(fileItem)
-                else ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
+                if (user != null && user.username == fileItem.ownerName) {
+                    fileTransLog.info("User \"${user.username}\" download \"$completePath\" success")
+                    getFileResponseEntity(fileItem)
+                } else {
+                    fileTransLog.warn("User \"${if (user != null) user.username else "Guest"}\" download \"$completePath\" failed. Permission denied.")
+                    ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
+                }
             }
         } else {
+            fileTransLog.warn("User \"${if (user != null) user.username else "Guest"}\" download \"$completePath\" failed. FileItem not found.")
             ResponseEntity(ReplyMsg(false, "Sorry. File is invalid"), HttpStatus.NOT_FOUND)
         }
         //TODO("Compress and download the folder")
     }
 
+    /**
+     * 上传文件
+     */
     @PreAuthorize("hasRole('ROLE_MEMBER')")
     @PostMapping("/api/file/**")
     fun uploadFile(@AuthenticationPrincipal user: UserDetails?, @RequestParam("file") files: List<MultipartFile>, request: HttpServletRequest): ResponseEntity<Array<ReplyMsg>> {
+        //获取**的部分，即要上传到的虚拟路径
         val path = Utils.getLegalPath(Utils.extractPathFromPattern(request))
+
+        //对应每个上传文件的返回消息列表
         val replyMsgList: MutableList<ReplyMsg> = mutableListOf()
-        if (user == null) return ResponseEntity(arrayOf(ReplyMsg(false, "Permission denied")), HttpStatus.FORBIDDEN)
+
+        //游客无法上传文件
+        if (user == null) {
+            fileTransLog.warn("A guest try to upload files. Permission denied")
+            return ResponseEntity(arrayOf(ReplyMsg(false, "Permission denied")), HttpStatus.FORBIDDEN)
+        }
 
         //Check the path is legal
-        val superItem = Utils.getSuperItem(path, fileItemRepository)
-                ?: return ResponseEntity(arrayOf(ReplyMsg(false, "Path is invalid")), HttpStatus.NOT_FOUND)
+        val superItem: FileItem? = Utils.getSuperItem(path, fileItemRepository)
+        if (superItem == null) {
+            fileTransLog.warn("User \"${user.username}\" upload file failed. Path \"$path\" is invalid")
+            return ResponseEntity(arrayOf(ReplyMsg(false, "Path is invalid")), HttpStatus.NOT_FOUND)
+        }
+
+        //检查路径是否属于上传者
         if (superItem.ownerName != user.username) {
+            fileTransLog.warn("User \"${user.username}\" upload file failed. Path \"$path\" is not belong him")
             return ResponseEntity(arrayOf(ReplyMsg(false, "You don't own the path: $path")), HttpStatus.FORBIDDEN)
         }
 
+        //一一处理上传文件列表
         for (file in files) {
+            //若上传时无文件名，设为null
             val name = file.originalFilename ?: "null"
 
-
-            //Check if exist
+            //检查同目录下是否存在同名文件
             if (fileItemRepository.countByVirtualPathAndVirtualNameAndOwnerName(path, name, user.username) > 0) {
+                fileTransLog.warn("User \"${user.username}\" upload file \"$path$name\" failed. File name is already exist in same path.")
                 replyMsgList.add(ReplyMsg(false, "$name -> File name is already exist"))
                 continue
             }
 
-            //Get the file MD5
+            //获取文件内容的MD5，留作本地存储的文件名
             val fileMD5 = MessageDigest.getInstance("MD5")
             fileMD5.update(file.bytes)
             val md5Name = String(Hex.encode(fileMD5.digest())).toUpperCase()
@@ -91,6 +125,7 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
             //check the user's usage enough
             val userRoot = fileItemRepository.findByVirtualPathAndOwnerName("/", user.username)
             if (userRoot.isEmpty() || userRoot[0].size + file.size > userRepository.findByUsername(user.username)!!.space) {
+                fileTransLog.warn("User \"${user.username}\" upload file \"$path$name\" failed. User space is not enough.")
                 replyMsgList.add(ReplyMsg(false, "$name -> User space is not enough"))
             } else {
                 fileItemRepository.save(fileItem)
@@ -98,10 +133,14 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
 
                 //Storage the real file
                 val saveFile = File(fileItem.getLocalRealPath())
+
+                //检查是否已存在同MD5的文件，若存在则不执行存储，仅仅保存索引
                 if (saveFile.exists()) {
+                    fileTransLog.info("User \"${user.username}\" upload file \"$path$name\" success. But have same file in system. Just save the Item data.")
                     replyMsgList.add(ReplyMsg(true, "$name -> Upload success but file is already exist"))
                 } else {
                     file.transferTo(saveFile)
+                    fileTransLog.info("User \"${user.username}\" upload file \"$path$name\" success.")
                     replyMsgList.add(ReplyMsg(true, "$name -> Upload success"))
                 }
             }
@@ -109,6 +148,10 @@ class FileTransferController(private val fileItemRepository: FileItemRepository,
         return ResponseEntity(replyMsgList.toTypedArray(), HttpStatus.OK)
     }
 
+
+    /**
+     * 构建文件流
+     */
     private fun getFileResponseEntity(fileItem: FileItem): ResponseEntity<InputStreamResource> {
         val file = File(fileItem.getLocalRealPath())
         val resource = InputStreamResource(FileInputStream(file))

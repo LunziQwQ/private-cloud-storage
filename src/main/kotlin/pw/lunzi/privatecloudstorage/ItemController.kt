@@ -9,15 +9,20 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import javax.servlet.http.HttpServletRequest
+import kotlin.math.log
 
 @RestController
 class ItemController(private val fileItemRepo: FileItemRepository) {
 
+    /**
+     * 对应不同请求的不同参数结构 ---------------------------------------
+     * 用于SpringBoot自动解析Json
+     */
     data class RenameMsg(val newName: String)
+
     data class MoveMsg(val newPath: String)
     data class ChangeAccessMsg(val isPublic: Boolean, val allowRecursion: Boolean)
     data class TransferMsg(val path: String, val name: String)
-
     data class DataItem(val itemName: String,
                         val path: String,
                         val size: Long,
@@ -25,16 +30,27 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
                         val isPublic: Boolean,
                         val lastModified: Date)
 
+    /**
+     * 目录下的Item列表
+     */
     @GetMapping("/api/items/{username}/**")
     fun getItems(@AuthenticationPrincipal user: UserDetails?, @PathVariable username: String, request: HttpServletRequest): Any {
+        //获取URL中的**部分
         val path = if (Utils.extractPathFromPattern(request).isEmpty()) "/$username/" else "/$username${Utils.extractPathFromPattern(request)}"
-        val superItem = Utils.getSuperItem(path, fileItemRepo)
-                ?: return ResponseEntity(ReplyMsg(false, "item is invalid"), HttpStatus.NOT_FOUND)
+        itemEditLog.info("User \"${if (user != null) user.username else "Guest"}\" try to get index \"$path\".")
 
+        //检查目录是否存在
+        val superItem: FileItem? = Utils.getSuperItem(path, fileItemRepo)
+        if (superItem == null) {
+            itemEditLog.warn("Get index from path \"$path\" failed. Path is invalid")
+            return ResponseEntity(ReplyMsg(false, "item is invalid"), HttpStatus.NOT_FOUND)
+        }
+
+        //获取该用户的Item，筛选是否在请求的目录下，将符合的加入返回列表dataList
         val fileItemList = fileItemRepo.findByOwnerName(username)
-
         val dataList = mutableListOf<DataItem>()
 
+        //检查目录是否Public
         if (superItem.isPublic) {
             fileItemList.forEach {
                 if (it.virtualPath == path) {
@@ -44,6 +60,7 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
                 }
             }
         } else {
+            //检查请求者是否拥有目录权限
             if (user != null && (superItem.ownerName == user.username || user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN")))) {
                 fileItemList.forEach {
                     if (it.virtualPath == path) {
@@ -51,9 +68,11 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
                     }
                 }
             } else {
+                itemEditLog.warn("User \"${if (user != null) user.username else "Guest"}\" get index \"$path\" failed. Permission denied")
                 return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
             }
         }
+        itemEditLog.info("User \"${if (user != null) user.username else "Guest"}\" get index \"$path\" success.")
         return ResponseEntity(dataList, HttpStatus.OK)
     }
 
