@@ -24,6 +24,9 @@ class SessionController {
     DeleteMapping("/api/session") -> logout
      */
 
+    /**
+     * 查看当前登录状态
+     */
     @PreAuthorize("hasRole('ROLE_MEMBER')")
     @GetMapping("/api/session")
     fun whoAmI(@AuthenticationPrincipal user: UserDetails?): Any {

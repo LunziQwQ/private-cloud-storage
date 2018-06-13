@@ -1,11 +1,11 @@
 package pw.lunzi.privatecloudstorage
 
+import org.apache.log4j.Logger
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
 import org.springframework.util.AntPathMatcher
 import org.springframework.web.servlet.HandlerMapping
 import javax.servlet.http.HttpServletRequest
-import org.apache.log4j.Logger
 
 
 
@@ -115,8 +115,10 @@ interface ShareItemRepository : MongoRepository<ShareItem, Long> {
 }
 
 /**
- * Log4j 日志输出 -------------------------------------------------------------
+ * Log4j 日志输出分类 -------------------------------------------------------------
  */
 val loginLog: Logger = Logger.getLogger("Login")
 val fileTransLog: Logger = Logger.getLogger("FileTransfer")
 val itemEditLog: Logger = Logger.getLogger("ItemEdit")
+val shareItemLog: Logger = Logger.getLogger("ItemShare")
+val userLog: Logger = Logger.getLogger("UserEdit")

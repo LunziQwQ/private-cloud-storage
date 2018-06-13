@@ -36,12 +36,13 @@ class MySecurityConfig(private val userRepository: UserRepository) : WebSecurity
                     response.writer.flush()
                     loginLog.info("User \"${a!!.name}\" login success")
                 })
-                .failureHandler({ _: HttpServletRequest?, response: HttpServletResponse?, a: AuthenticationException? ->
+                .failureHandler({ _: HttpServletRequest?, response: HttpServletResponse?, _: AuthenticationException? ->
                     response!!.setHeader("Content-Type", "application/json;charset=utf-8")
                     response.status = HttpStatus.FORBIDDEN.value()
                     response.writer.print("{\"result\":false,\"message\":\"Username or password wrong\"}")
                     response.writer.flush()
                     loginLog.warn("User login failed")
+                    loginLog.error("Test error")
                 })
 
 
