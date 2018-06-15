@@ -100,6 +100,12 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
             return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
         }
 
+        //检测目录下新名字是否存在
+        if (fileItemRepo.findByVirtualPathAndVirtualName(path, msg.newName) != null) {
+            itemEditLog.warn("User \"${user.username}\" Rename item \"$path$name\" failed. New name is already exist")
+            return ResponseEntity(ReplyMsg(false, "New name already exist"), HttpStatus.BAD_REQUEST)
+        }
+
         //若重命名的为文件夹，递归更新子item路径
         if (fileItem.isDictionary) {
             val oldPath: CharSequence = path + name
@@ -195,9 +201,15 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
             return ResponseEntity(ReplyMsg(false, "Sorry. New path is invalid"), HttpStatus.BAD_REQUEST)
         }
 
+        //Check permission
         if (fileItem.ownerName != user.username && !user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            itemEditLog.warn("User \"${user.username}\" move item \"$path$name\" to \"${msg.newPath}$name\" failed. Permission denied.")
             return ResponseEntity(ReplyMsg(false, "Permission denied"), HttpStatus.FORBIDDEN)
+        }
+
+        //检查新目录下是否存在重名文件
+        if (fileItemRepo.findByVirtualPathAndVirtualName(msg.newPath, name) != null) {
+            itemEditLog.warn("User \"${user.username}\" move item \"$path$name\" to \"${msg.newPath}$name\" failed. New path have a same name item.")
+            return ResponseEntity(ReplyMsg(false, "New path have a same name item"), HttpStatus.BAD_REQUEST)
         }
 
         //Do move
