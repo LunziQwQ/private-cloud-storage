@@ -45,7 +45,7 @@ API列表根据RESTful风格整理，以URL资源分类
 		* 返回范例：`200 OK [ {"username":"root", "userURL":"{Server address}/api/items/root", "admin":true}, ... ]`
 * **user**
 	* `GET /api/user/{username}` 返回该用户名的用户信息
-		* 若用户存在返回：`200 OK {"isExist":true, "username":"...", "space":..., "index":"..."}`
+		* 若用户存在返回：`200 OK {"isExist":true, "username":"...", "space":..., "usage":..., "index":"..."}`
 		* 若用户不存在返回：`404 NOT_FOUND {"result":false, "message":"User not found"}`
 	* `POST /api/user/{username}` 注册用户
 		* 参数：`[json] {"password":"..."}`

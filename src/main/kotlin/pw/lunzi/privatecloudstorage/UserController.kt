@@ -79,10 +79,13 @@ class UserController(private val userRepository: UserRepository, private val fil
             return ResponseEntity(ReplyMsg(false, "User not found"), HttpStatus.NOT_FOUND)
         }
 
+        val usage = fileItemRepository.findByVirtualPathAndVirtualName("/", username)!!.size
+
         val message = mapOf(
                 "isExist" to true,
                 "username" to username,
                 "space" to user.space,
+                "usage" to usage,
                 "index" to "${Config.hostname}/api/items/$username"
         )
         userLog.info("Someone get user info \"$username\" success")
