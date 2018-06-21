@@ -327,10 +327,17 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
             return ResponseEntity(ReplyMsg(false, "Item is already belong you"), HttpStatus.ALREADY_REPORTED)
         }
 
+
         //Check new path is legal
         if (Utils.getSuperItem(newPath, fileItemRepo) == null) {
             itemEditLog.warn("User ${user.username} transfer \"${msg.path}${msg.name}\" to \"$newPath${msg.name}\" failed. New path is invalid.")
             return ResponseEntity(ReplyMsg(false, "New path is invalid"), HttpStatus.BAD_REQUEST)
+        }
+
+        //检查目标路径是否存在重名文件夹
+        if (fileItemRepo.findByVirtualPathAndVirtualName(newPath, msg.name) != null) {
+            itemEditLog.warn("User ${user.username} transfer \"${msg.path}${msg.name}\" to \"$newPath${msg.name}\" failed. Target path have same name item.")
+            return ResponseEntity(ReplyMsg(false, "Target path have same name item"), HttpStatus.BAD_REQUEST)
         }
 
         if (!fileItem.isPublic && !user.authorities.contains(SimpleGrantedAuthority("ROLE_ADMIN"))) {
@@ -344,7 +351,7 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
         if (fileItem.isDictionary) {
             fileItemRepo.findByOwnerName(fileItem.ownerName).forEach {
                 if (it.virtualPath.contains(msg.path + msg.name) && it.isPublic) {
-                    fileItemRepo.save(FileItem(
+                    val newItem = FileItem(
                             user.username,
                             false,
                             it.isDictionary,
@@ -354,13 +361,14 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
                             it.virtualName,
                             it.isPublic,
                             Date()
-                    ))
-                    Utils.updateSize(it, it.size, fileItemRepo)
+                    )
+                    fileItemRepo.save(newItem)
+                    Utils.updateSize(newItem, newItem.size, fileItemRepo)
                     count++
                 }
             }
         }
-        fileItemRepo.save(FileItem(
+        val newItem = FileItem(
                 user.username,
                 false,
                 fileItem.isDictionary,
@@ -370,8 +378,9 @@ class ItemController(private val fileItemRepo: FileItemRepository) {
                 fileItem.virtualName,
                 fileItem.isPublic,
                 Date()
-        ))
-        Utils.updateSize(fileItem, fileItem.size, fileItemRepo)
+        )
+        fileItemRepo.save(newItem)
+        Utils.updateSize(newItem, newItem.size, fileItemRepo)
         itemEditLog.info("User ${user.username} try to transfer \"${msg.path}${msg.name}\" to \"$newPath${msg.name}\" total $count ${if (count == 1) "item" else "items"} success.")
         return ResponseEntity(ReplyMsg(true, "Transfer ${msg.path}${msg.name} to $newPath${msg.name} total $count ${if (count == 1) "item" else "items"} success"), HttpStatus.OK)
     }
